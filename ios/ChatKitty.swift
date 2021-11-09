@@ -1,5 +1,5 @@
-@objc(Chatkitty)
-class Chatkitty: NSObject {
+@objc(ChatKitty)
+class ChatKitty: NSObject {
 
     @objc(multiply:withB:withResolver:withRejecter:)
     func multiply(a: Float, b: Float, resolve:RCTPromiseResolveBlock,reject:RCTPromiseRejectBlock) -> Void {

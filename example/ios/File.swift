@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  ChatkittyExample
+//  ChatKittyExample
 //
 
 import Foundation
