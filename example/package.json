@@ -9,8 +9,14 @@
     "start": "react-native start"
   },
   "dependencies": {
+    "@stomp/rx-stomp": "^1.1.2",
+    "axios": "^0.21.1",
     "react": "16.13.1",
-    "react-native": "0.63.4"
+    "react-native": "0.63.4",
+    "react-native-webrtc": "^1.92.2",
+    "rxjs": "^6.6.7",
+    "sockjs-client": "^1.5.1",
+    "text-encoding": "^0.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
