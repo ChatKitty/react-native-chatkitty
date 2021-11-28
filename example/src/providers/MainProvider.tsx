@@ -54,7 +54,7 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
 
   const startCallSession = (call: Call, stream: MediaStream) => {
     console.log('start call: ', call);
-    let result = kitty.startCallSession({
+    let result = kitty.Calls.startCallSession({
       call,
       stream,
       onParticipantAcceptedCall: (participant) => {
@@ -70,7 +70,7 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
         setRemoteUser(participant);
         setRemoteStream(participantStream);
       },
-      onParticipantLeftCall: () => {
+      onCallEnded: () => {
         closeCall();
       },
     }) as StartedCallSessionResult;
@@ -130,7 +130,7 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
       );
     });
 
-    kitty.onCallInvite((call) => {
+    kitty.Calls.onCallInvite((call) => {
       Alert.alert(
         'New Call',
         'You have a new call from ' + call.creator.displayName,
@@ -138,7 +138,7 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
           {
             text: 'Reject',
             onPress: () => {
-              kitty.rejectCall({ call });
+              kitty.Calls.rejectCall({ call });
             },
             style: 'cancel',
           },
@@ -163,14 +163,15 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
     ).channel;
 
     let aCall = (
-      (await kitty.getCalls({
+      (await kitty.Calls.getCalls({
         channel,
         filter: { active: true },
       })) as GetCallsSucceededResult
     ).paginator.items[0];
 
     if (!aCall) {
-      aCall = ((await kitty.startCall({ channel })) as StartedCallResult).call;
+      aCall = ((await kitty.Calls.startCall({ channel })) as StartedCallResult)
+        .call;
     }
 
     if (localStream) {
