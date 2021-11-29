@@ -3539,6 +3539,11 @@ react-native-gesture-handler@^1.10.3:
     invariant "^2.2.4"
     prop-types "^15.7.2"
 
+react-native-invoke-app@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/react-native-invoke-app/-/react-native-invoke-app-1.0.6.tgz#5ea2fe6e498cee2214d04afbd8d0005a8681ca36"
+  integrity sha512-+kpgr+trccd1R+ZxTnIOpGWVsr/W+JXUKiNibgwwx+KbdTxMgQCt47/mb2Z6/nMCVgTBXP5MSCpDGJ6II1byrw==
+
 react-native-safe-area-context@^3.3.0:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/react-native-safe-area-context/-/react-native-safe-area-context-3.3.2.tgz#9549a2ce580f2374edb05e49d661258d1b8bcaed"

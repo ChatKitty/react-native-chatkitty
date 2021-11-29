@@ -84,6 +84,14 @@ export class GetCallsSucceededResult extends ChatKittySucceededResult {
   }
 }
 
+export type GetCallResult = GetCallSucceededResult | ChatKittyFailedResult;
+
+export class GetCallSucceededResult extends ChatKittySucceededResult {
+  constructor(public call: Call) {
+    super();
+  }
+}
+
 export interface RejectCallRequest {
   call: Call;
 }

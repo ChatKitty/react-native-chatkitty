@@ -172,7 +172,47 @@ import {
   StartSessionResult,
 } from './user-session';
 import { Notification } from './notification';
-import ChatKittyCalls from './chatkitty-calls';
+import invokeApp from 'react-native-invoke-app';
+import {
+  MediaStream,
+  RTCIceCandidateType,
+  RTCOfferOptions,
+  RTCPeerConnection,
+  RTCPeerConnectionConfiguration,
+  RTCSessionDescriptionType,
+} from 'react-native-webrtc';
+import {
+  Call,
+  GetCallResult,
+  GetCallsRequest,
+  GetCallsResult,
+  GetCallsSucceededResult,
+  GetCallSucceededResult,
+  RejectCallRequest,
+  RejectCallResult,
+  RejectedCallResult,
+  StartCallRequest,
+  StartCallResult,
+  StartedCallResult,
+} from './call';
+import {
+  AnswerOfferCallSignal,
+  CallSignal,
+  CreateCallSignalRequest,
+  CreateOfferCallSignal,
+  DisconnectPeerCallSignal,
+  isAddCandidateCallSignal,
+  isAnswerOfferCallSignal,
+  isCreateOfferCallSignal,
+  isDisconnectPeerCallSignal,
+  isSendDescriptionCallSignal,
+} from './call-signal';
+import RNCallKeep from 'react-native-callkeep';
+import {
+  StartCallSessionRequest,
+  StartCallSessionResult,
+  StartedCallSessionResult,
+} from './call-session';
 
 export class ChatKitty {
   private static readonly _instances = new Map<string, ChatKitty>();
@@ -199,10 +239,15 @@ export class ChatKitty {
     return '/application/v1/users/' + id + '.relay';
   }
 
+  private static callRelay(id: number): string {
+    return '/application/v1/calls/' + id + '.relay';
+  }
+
   private readonly stompX: StompX;
 
-  private readonly currentUserNextSubject =
-    new BehaviorSubject<CurrentUser | null>(null);
+  private readonly currentUserSubject = new BehaviorSubject<CurrentUser | null>(
+    null
+  );
 
   private readonly lostConnectionSubject = new Subject<void>();
   private readonly resumedConnectionSubject = new Subject<void>();
@@ -217,17 +262,399 @@ export class ChatKitty {
 
   private isStartingSession = false;
 
-  private _calls?: ChatKittyCalls;
+  public Calls = new (class {
+    constructor(private readonly kitty: ChatKitty) {}
 
-  public get Calls() {
-    return (
-      this._calls ||
-      (this._calls = new ChatKittyCalls(
-        this.stompX,
-        this.currentUserNextSubject
-      ))
-    );
-  }
+    public async initialize() {
+      await RNCallKeep.setup({
+        ios: {
+          appName: 'ChatKittyReactNativeDemo',
+        },
+        android: {
+          alertTitle: 'Permissions required',
+          alertDescription:
+            'This application needs to access your phone accounts',
+          cancelButton: 'Cancel',
+          okButton: 'ok',
+          additionalPermissions: [],
+        },
+      });
+
+      RNCallKeep.setAvailable(true);
+
+      RNCallKeep.addEventListener(
+        'didReceiveStartCallAction',
+        ({ handle, callUUID, name }) => {
+          const call = this.getCall(callUUID);
+
+          console.log('didReceiveStartCallAction', { handle, call, name });
+
+          invokeApp();
+
+          RNCallKeep.answerIncomingCall(callUUID);
+        }
+      );
+
+      RNCallKeep.addEventListener('answerCall', ({ callUUID }) => {
+        const call = this.getCall(callUUID);
+
+        console.log('answerCall', { call });
+      });
+
+      RNCallKeep.addEventListener('endCall', ({ callUUID }) => {
+        const call = this.getCall(callUUID);
+
+        console.log('didReceiveStartCallAction', { call });
+      });
+
+      let displayIncomingCallUnsubscribe: ChatKittyUnsubscribe | undefined;
+
+      this.kitty.currentUserSubject.subscribe((user) => {
+        displayIncomingCallUnsubscribe?.();
+
+        if (user) {
+          displayIncomingCallUnsubscribe =
+            this.kitty.stompX.listenForEvent<Call>({
+              topic: user._topics.calls,
+              event: 'me.call.invited',
+              onSuccess: (call) => {
+                RNCallKeep.displayIncomingCall(
+                  `${call.id}`,
+                  call.creator.name,
+                  call.creator.displayName,
+                  'generic',
+                  true
+                );
+              },
+            });
+        }
+      });
+    }
+
+    public startCall(request: StartCallRequest): Promise<StartCallResult> {
+      return new Promise((resolve) => {
+        this.kitty.stompX.sendAction<Call>({
+          destination: request.channel._actions.call,
+          body: {
+            type: request.type,
+            properties: request.properties,
+          },
+          onSuccess: (call) => {
+            RNCallKeep.startCall(
+              `${call.id}`,
+              call.creator.name,
+              call.creator.displayName
+            );
+
+            resolve(new StartedCallResult(call));
+          },
+          onError: (error) => {
+            resolve(new ChatKittyFailedResult(error));
+          },
+        });
+      });
+    }
+
+    public startCallSession(
+      request: StartCallSessionRequest
+    ): StartCallSessionResult {
+      const onParticipantAcceptedCall = request.onParticipantAcceptedCall;
+      const onParticipantRejectedCall = request.onParticipantRejectedCall;
+      const onParticipantEnteredCall = request.onParticipantEnteredCall;
+      const onParticipantLeftCall = request.onParticipantLeftCall;
+
+      let participantAcceptedCallUnsubscribe: () => void;
+      let participantRejectedCallUnsubscribe: () => void;
+      let participantEnteredCallUnsubscribe: () => void;
+      let participantLeftCallUnsubscribe: () => void;
+
+      const call = request.call;
+
+      if (onParticipantAcceptedCall) {
+        participantAcceptedCallUnsubscribe =
+          this.kitty.stompX.listenForEvent<User>({
+            topic: call._topics.participants,
+            event: 'call.participant.accepted',
+            onSuccess: (user) => {
+              RNCallKeep.setCurrentCallActive(`${call.id}`);
+
+              onParticipantAcceptedCall(user);
+            },
+          });
+      }
+
+      if (onParticipantRejectedCall) {
+        participantRejectedCallUnsubscribe =
+          this.kitty.stompX.listenForEvent<User>({
+            topic: call._topics.participants,
+            event: 'call.participant.rejected',
+            onSuccess: (user) => {
+              onParticipantRejectedCall(user);
+            },
+          });
+      }
+
+      if (onParticipantEnteredCall) {
+        participantEnteredCallUnsubscribe =
+          this.kitty.stompX.listenForEvent<User>({
+            topic: call._topics.participants,
+            event: 'call.participant.entered',
+            onSuccess: (user) => {
+              onParticipantEnteredCall(user);
+            },
+          });
+      }
+
+      if (onParticipantLeftCall) {
+        participantLeftCallUnsubscribe = this.kitty.stompX.listenForEvent<User>(
+          {
+            topic: call._topics.participants,
+            event: 'call.participant.left',
+            onSuccess: (user) => {
+              onParticipantLeftCall(user);
+            },
+          }
+        );
+      }
+
+      const signalSubject: Subject<CallSignal> = new Subject<CallSignal>();
+
+      const signalDispatcher = new CallSignalDispatcher(
+        this.kitty.stompX,
+        call
+      );
+
+      const receivedCallSignalUnsubscribe =
+        this.kitty.stompX.listenForEvent<CallSignal>({
+          topic: call._topics.signals,
+          event: 'call.signal.created',
+          onSuccess: (signal) => {
+            signalSubject.next(signal);
+          },
+        });
+
+      let end = () => {
+        participantLeftCallUnsubscribe?.();
+        participantEnteredCallUnsubscribe?.();
+        participantRejectedCallUnsubscribe?.();
+        participantAcceptedCallUnsubscribe?.();
+
+        receivedCallSignalUnsubscribe();
+
+        signalsSubscription.unsubscribe();
+
+        RNCallKeep.endCall(`${call.id}`);
+      };
+
+      const endedCallUnsubscribe = this.kitty.stompX.listenForEvent<Call>({
+        topic: call._topics.self,
+        event: 'call.self.ended',
+        onSuccess: (c) => {
+          end();
+
+          request.onCallEnded?.(c);
+        },
+      });
+
+      const connections: Map<number, Connection> = new Map();
+
+      const onCreateOffer = async (
+        signal: CreateOfferCallSignal
+      ): Promise<void> => {
+        const peer = signal.peer;
+
+        if (connections.has(peer.id)) {
+          return;
+        }
+
+        const connection: Connection = new P2PConnection(
+          peer,
+          request.stream,
+          signalDispatcher,
+          request.onParticipantAddedStream
+        );
+
+        await connection.createOffer();
+
+        connections.set(peer.id, connection);
+      };
+
+      const onAnswerOffer = (signal: AnswerOfferCallSignal): void => {
+        const peer = signal.peer;
+
+        if (connections.has(peer.id)) {
+          return;
+        }
+
+        const connection = new P2PConnection(
+          peer,
+          request.stream,
+          signalDispatcher,
+          request.onParticipantAddedStream
+        );
+
+        connections.set(peer.id, connection);
+      };
+
+      const onDisconnect = (signal: DisconnectPeerCallSignal): void => {
+        const connection = connections.get(signal.peer.id);
+
+        if (connection) {
+          connection.close();
+        }
+      };
+
+      const signalsSubscription = signalSubject.subscribe({
+        next: (signal) => {
+          if (isCreateOfferCallSignal(signal)) {
+            onCreateOffer(signal).then();
+          }
+
+          if (isAnswerOfferCallSignal(signal)) {
+            onAnswerOffer(signal);
+          }
+
+          if (isAddCandidateCallSignal(signal)) {
+            const connection = connections.get(signal.peer.id);
+
+            if (connection) {
+              connection.addCandidate(signal.payload).then();
+            }
+          }
+
+          if (isSendDescriptionCallSignal(signal)) {
+            const connection = connections.get(signal.peer.id);
+
+            if (connection) {
+              connection.answerOffer(signal.payload).then();
+            }
+          }
+
+          if (isDisconnectPeerCallSignal(signal)) {
+            onDisconnect(signal);
+          }
+        },
+      });
+
+      const callUnsubscribe = this.kitty.stompX.listenToTopic({
+        topic: call._topics.self,
+        onSuccess: () => {
+          const participantsUnsubscribe = this.kitty.stompX.listenToTopic({
+            topic: call._topics.participants,
+          });
+
+          const signalsUnsubscribe = this.kitty.stompX.listenToTopic({
+            topic: call._topics.signals,
+          });
+
+          const superEnd = end;
+
+          end = () => {
+            superEnd();
+
+            participantsUnsubscribe();
+            signalsUnsubscribe();
+            endedCallUnsubscribe();
+
+            callUnsubscribe();
+          };
+
+          this.kitty.stompX.sendAction<never>({
+            destination: call._actions.ready,
+            body: {},
+          });
+        },
+      });
+
+      const session = {
+        call: call,
+        stream: request.stream,
+        end: () => end(),
+      };
+
+      RNCallKeep.answerIncomingCall(`${call.id}`);
+
+      return new StartedCallSessionResult(session);
+    }
+
+    public rejectCall(request: RejectCallRequest): Promise<RejectCallResult> {
+      return new Promise((resolve) => {
+        this.kitty.stompX.sendAction<never>({
+          destination: request.call._actions.reject,
+          body: {},
+          onSuccess: (call) => {
+            resolve(new RejectedCallResult(call));
+          },
+          onError: (error) => {
+            resolve(new ChatKittyFailedResult(error));
+          },
+        });
+      });
+    }
+
+    public getCalls(request: GetCallsRequest): Promise<GetCallsResult> {
+      const parameters: { active?: boolean } = {};
+
+      const active = request?.filter?.active;
+
+      if (active) {
+        parameters.active = active;
+      }
+
+      return new Promise((resolve) => {
+        ChatKittyPaginator.createInstance<Call>({
+          stompX: this.kitty.stompX,
+          relay: request.channel._relays.calls,
+          contentName: 'calls',
+          parameters: parameters,
+        })
+          .then((paginator) => resolve(new GetCallsSucceededResult(paginator)))
+          .catch((error) => resolve(new ChatKittyFailedResult(error)));
+      });
+    }
+
+    public getCall(id: number): Promise<GetCallResult> {
+      return new Promise((resolve) => {
+        this.kitty.stompX.relayResource<Call>({
+          destination: ChatKitty.callRelay(id),
+          onSuccess: (call) => {
+            resolve(new GetCallSucceededResult(call));
+          },
+          onError: (error) => {
+            resolve(new ChatKittyFailedResult(error));
+          },
+        });
+      });
+    }
+
+    public onCallInvite(
+      onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
+    ): ChatKittyUnsubscribe {
+      const user = this.kitty.currentUserSubject.value;
+
+      if (!user) {
+        throw new NoActiveSessionError();
+      }
+
+      const unsubscribe = this.kitty.stompX.listenForEvent<Call>({
+        topic: user._topics.calls,
+        event: 'me.call.invited',
+        onSuccess: (call) => {
+          if (typeof onNextOrObserver === 'function') {
+            onNextOrObserver(call);
+          } else {
+            onNextOrObserver.onNext(call);
+          }
+        },
+      });
+
+      return () => unsubscribe;
+    }
+
+    public close() {
+      RNCallKeep.setAvailable(false);
+    }
+  })(this);
 
   public constructor(private readonly configuration: ChatKittyConfiguration) {
     this.stompX = new StompX({
@@ -289,7 +716,7 @@ export class ChatKitty {
         onConnected: (user) => {
           this.currentUser = user;
 
-          this.currentUserNextSubject.next(user);
+          this.currentUserSubject.next(user);
         },
         onConnectionLost: () => this.lostConnectionSubject.next(),
         onConnectionResumed: () => this.resumedConnectionSubject.next(),
@@ -304,10 +731,12 @@ export class ChatKitty {
 
   public endSession(): Promise<void> {
     return new Promise((resolve, reject) => {
+      this.Calls.close();
+
       this.stompX.disconnect({
         onSuccess: () => {
           this.currentUser = undefined;
-          this.currentUserNextSubject.next(null);
+          this.currentUserSubject.next(null);
 
           resolve();
         },
@@ -343,7 +772,7 @@ export class ChatKitty {
       | ChatKittyObserver<CurrentUser | null>
       | ((user: CurrentUser | null) => void)
   ): ChatKittyUnsubscribe {
-    const subscription = this.currentUserNextSubject.subscribe((user) => {
+    const subscription = this.currentUserSubject.subscribe((user) => {
       if (typeof onNextOrObserver === 'function') {
         onNextOrObserver(user);
       } else {
@@ -400,7 +829,7 @@ export class ChatKitty {
         destination: user._actions.update,
         body: update(user),
         onSuccess: (user) => {
-          this.currentUserNextSubject.next(user);
+          this.currentUserSubject.next(user);
 
           resolve(new UpdatedCurrentUserResult(user));
         },
@@ -1848,6 +2277,140 @@ function isCreateChatKittyExternalFileProperties(
     result.name !== undefined &&
     result.size !== undefined
   );
+}
+
+interface Connection {
+  createOffer(): Promise<void>;
+  answerOffer(description: RTCSessionDescriptionType): Promise<void>;
+  addCandidate(candidate: RTCIceCandidateType): Promise<void>;
+  close(): void;
+}
+
+class P2PConnection implements Connection {
+  private static readonly rtcConfiguration: RTCPeerConnectionConfiguration = {
+    iceServers: [
+      {
+        urls: ['turn:34.231.248.98:3478'],
+        username: 'chatkitty',
+        credential: '5WEDIcZHUxhlUlsdQcqj',
+      },
+      {
+        urls: ['stun:stun2.1.google.com:19302'],
+      },
+    ],
+  };
+
+  private readonly offerAnswerOptions: RTCOfferOptions;
+
+  private rtcPeerConnection: RTCPeerConnection;
+
+  constructor(
+    private readonly peer: User,
+    private readonly stream: MediaStream,
+    private readonly signalDispatcher: CallSignalDispatcher,
+    private readonly onParticipantAddedStream?: (
+      user: User,
+      stream: MediaStream
+    ) => void
+  ) {
+    this.offerAnswerOptions = {
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: true,
+    };
+
+    this.rtcPeerConnection = new RTCPeerConnection(
+      P2PConnection.rtcConfiguration
+    );
+
+    this.rtcPeerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        signalDispatcher.dispatch({
+          type: 'ADD_CANDIDATE',
+          peer: { id: peer.id },
+          payload: event.candidate,
+        });
+      }
+    };
+
+    this.rtcPeerConnection.onaddstream = (event) => {
+      this.onParticipantAddedStream?.(peer, event.stream);
+    };
+
+    this.rtcPeerConnection.onconnectionstatechange = () => {
+      switch (this.rtcPeerConnection.connectionState) {
+        case 'connected':
+          break;
+        case 'disconnected':
+        case 'failed':
+        case 'closed':
+          // TODO end call session
+          break;
+      }
+    };
+
+    this.rtcPeerConnection.oniceconnectionstatechange = () => {
+      switch (this.rtcPeerConnection.connectionState) {
+        case 'disconnected':
+        case 'failed':
+        case 'closed':
+          // TODO end call session
+          break;
+      }
+    };
+
+    this.rtcPeerConnection.addStream(this.stream);
+  }
+
+  createOffer = async () => {
+    const description = await this.rtcPeerConnection.createOffer(
+      this.offerAnswerOptions
+    );
+
+    await this.rtcPeerConnection.setLocalDescription(description);
+
+    this.signalDispatcher.dispatch({
+      type: 'SEND_DESCRIPTION',
+      peer: this.peer,
+      payload: description,
+    });
+  };
+
+  answerOffer = async (description: RTCSessionDescriptionType) => {
+    await this.rtcPeerConnection.setRemoteDescription(description);
+
+    if (description.type === 'offer') {
+      const answer = await this.rtcPeerConnection.createAnswer(
+        this.offerAnswerOptions
+      );
+
+      await this.rtcPeerConnection.setLocalDescription(answer);
+
+      this.signalDispatcher.dispatch({
+        type: 'SEND_DESCRIPTION',
+        peer: this.peer,
+        payload: answer,
+      });
+    }
+  };
+
+  addCandidate = async (candidate: RTCIceCandidateType): Promise<void> => {
+    await this.rtcPeerConnection.addIceCandidate(candidate);
+  };
+
+  close = (): void => {
+    this.rtcPeerConnection.close();
+  };
+}
+
+class CallSignalDispatcher {
+  constructor(private stompX: StompX, private call: Call) {}
+
+  dispatch = (request: CreateCallSignalRequest): void => {
+    this.stompX.sendAction<never>({
+      destination: this.call._actions.signal,
+      body: request,
+    });
+  };
 }
 
 export default ChatKitty;

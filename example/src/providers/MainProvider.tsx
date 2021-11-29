@@ -116,6 +116,8 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
 
     await kitty.startSession({ username: username });
 
+    await kitty.Calls.initialize();
+
     kitty.getUsers({ filter: { online: true } }).then((result) => {
       setUsers((result as GetUsersSucceededResult).paginator.items);
     });

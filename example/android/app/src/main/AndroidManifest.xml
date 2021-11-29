@@ -2,13 +2,33 @@
   package="com.example.reactnativechatkitty">
 
   <uses-permission android:name="android.permission.INTERNET" />
-  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-  <uses-permission android:name="android.permission.BLUETOOTH" />
-  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+  <uses-permission android:name="android.permission.BIND_TELECOM_CONNECTION_SERVICE"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+  <uses-permission android:name="android.permission.CALL_PHONE" />
+
+  <!-- OPTIONAL PERMISSIONS, REMOVE WHATEVER YOU DO NOT NEED -->
+  <uses-permission android:name="android.permission.MANAGE_DOCUMENTS" />
+  <uses-permission android:name="android.permission.READ_INTERNAL_STORAGE" />
+  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+  <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+  <uses-permission android:name="android.permission.VIBRATE" />
   <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+  <!-- These require runtime permissions on M -->
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="android.permission.READ_CONTACTS" />
+  <uses-permission android:name="android.permission.READ_CALENDAR" />
+  <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
   <uses-permission android:name="android.permission.RECORD_AUDIO" />
-  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+  <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+  <!-- END OPTIONAL PERMISSIONS -->
 
   <application
     android:name=".MainApplication"
@@ -28,5 +48,13 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+
+    <service android:name="io.wazo.callkeep.VoiceConnectionService"
+             android:label="ChatKittyCallConnectionService"
+             android:permission="android.permission.BIND_TELECOM_CONNECTION_SERVICE">
+      <intent-filter>
+        <action android:name="android.telecom.ConnectionService" />
+      </intent-filter>
+    </service>
   </application>
 </manifest>

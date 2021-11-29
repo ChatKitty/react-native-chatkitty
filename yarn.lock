@@ -7847,6 +7847,11 @@ react-native-callkeep@^4.3.1:
   resolved "https://registry.yarnpkg.com/react-native-callkeep/-/react-native-callkeep-4.3.1.tgz#62c5713318714a2432e5a0e269bf5f8fd0fc9722"
   integrity sha512-ezFd0ch0m81V6INUnJeyyy6WNpoUreb3heFq64F4elzGOdoVhY2m2Z/wJNin7b/zBZwKk8sEXlBXoNhW+GjDVg==
 
+react-native-invoke-app@^1.0.6:
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/react-native-invoke-app/-/react-native-invoke-app-1.0.6.tgz#5ea2fe6e498cee2214d04afbd8d0005a8681ca36"
+  integrity sha512-+kpgr+trccd1R+ZxTnIOpGWVsr/W+JXUKiNibgwwx+KbdTxMgQCt47/mb2Z6/nMCVgTBXP5MSCpDGJ6II1byrw==
+
 react-native-webrtc@^1.92.2:
   version "1.92.2"
   resolved "https://registry.yarnpkg.com/react-native-webrtc/-/react-native-webrtc-1.92.2.tgz#56c808f0e5f7f89bce46182b5d70a5e813bbdae3"
