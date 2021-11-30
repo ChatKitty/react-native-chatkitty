@@ -4,6 +4,3 @@ apply from: file("node_modules/@react-native-community/cli-platform-android/nati
 
 include ':react-native-callkeep'
 project(':react-native-callkeep').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-callkeep/android')
-
-include ':react-native-invoke-app'
-project(':react-native-invoke-app').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-invoke-app/android')

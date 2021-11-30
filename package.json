@@ -54,7 +54,7 @@
     "@stomp/rx-stomp": "^1.1.2",
     "@types/jest": "^26.0.0",
     "@types/react": "^16.9.19",
-    "@types/react-native": "0.62.13",
+    "@types/react-native": "^0.66.6",
     "@types/react-native-webrtc": "^1.75.4",
     "@types/sockjs-client": "^1.5.0",
     "@types/text-encoding": "0.0.35",
@@ -72,7 +72,6 @@
     "react-native": "0.63.4",
     "react-native-builder-bob": "^0.18.2",
     "react-native-callkeep": "^4.3.1",
-    "react-native-invoke-app": "^1.0.6",
     "react-native-webrtc": "^1.92.2",
     "release-it": "^14.2.2",
     "rxjs": "^6.6.7",
@@ -86,7 +85,6 @@
     "react": "*",
     "react-native": "*",
     "react-native-callkeep": "^4.3.1",
-    "react-native-invoke-app": "^1.0.6",
     "react-native-webrtc": "^1.92.2",
     "rxjs": "^6.6.7",
     "sockjs-client": "^1.5.1",
@@ -149,7 +147,8 @@
     "singleQuote": true,
     "tabWidth": 2,
     "trailingComma": "es5",
-    "useTabs": false
+    "useTabs": false,
+    "endOfLine": "auto"
   },
   "react-native-builder-bob": {
     "source": "src",

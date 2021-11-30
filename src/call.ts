@@ -1,7 +1,8 @@
 import { Channel } from './channel';
 import { ChatKittyPaginator } from './pagination';
 import { ChatKittyFailedResult, ChatKittySucceededResult } from './result';
-import { User } from './user';
+import { ChatKittyUserReference, User } from './user';
+import { ChatKittyError } from './error';
 
 export type Call = ConferenceCall | PresenterCall;
 
@@ -23,17 +24,17 @@ export type ConferenceCall = CallProperties;
 
 export type PresenterCall = CallProperties;
 
-interface CallRelays {
+export interface CallRelays {
   self: string;
 }
 
-interface CallTopics {
+export interface CallTopics {
   self: string;
   participants: string;
   signals: string;
 }
 
-interface CallActions {
+export interface CallActions {
   ready: string;
   reject: string;
   signal: string;
@@ -47,11 +48,21 @@ export function isPresenterCall(call: Call): call is PresenterCall {
   return call.type === 'PRESENTER';
 }
 
-export interface StartCallRequest {
+type StartChannelCallRequest = {
   channel: Channel;
   type?: string;
+};
+
+type StartDirectCallRequest = {
+  members: ChatKittyUserReference[];
+};
+
+export type StartCallRequest = (
+  | StartChannelCallRequest
+  | StartDirectCallRequest
+) & {
   properties?: unknown;
-}
+};
 
 export type StartCallResult = StartedCallResult | ChatKittyFailedResult;
 
@@ -59,12 +70,6 @@ export class StartedCallResult extends ChatKittySucceededResult {
   constructor(public call: Call) {
     super();
   }
-}
-
-export function startedCall(
-  result: StartCallResult
-): result is StartedCallResult {
-  return (result as StartedCallResult).call !== undefined;
 }
 
 export interface GetCallsRequest {
@@ -92,6 +97,18 @@ export class GetCallSucceededResult extends ChatKittySucceededResult {
   }
 }
 
+export interface AcceptCallRequest {
+  call: Call;
+}
+
+export type AcceptCallResult = AcceptedCallResult | ChatKittyFailedResult;
+
+export class AcceptedCallResult extends ChatKittySucceededResult {
+  constructor(public call: Call) {
+    super();
+  }
+}
+
 export interface RejectCallRequest {
   call: Call;
 }
@@ -104,8 +121,8 @@ export class RejectedCallResult extends ChatKittySucceededResult {
   }
 }
 
-export function rejectedCall(
-  result: RejectCallRequest
-): result is RejectedCallResult {
-  return (result as RejectedCallResult).call !== undefined;
+export class NoActiveCallError extends ChatKittyError {
+  constructor() {
+    super('NoActiveCallError', "You're not currently in a call.");
+  }
 }
