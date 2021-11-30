@@ -643,17 +643,21 @@ export class ChatKitty {
           signalsSubscription.unsubscribe();
         };
 
+        const connections: Map<number, Connection> = new Map();
+
         const endedCallUnsubscribe = this.kitty.stompX.listenForEvent<Call>({
           topic: call._topics.self,
           event: 'call.self.ended',
           onSuccess: () => {
             end();
 
+            connections.forEach((connection) => connection.close());
+
+            connections.clear();
+
             this.callEndedSubject.next();
           },
         });
-
-        const connections: Map<number, Connection> = new Map();
 
         const onCreateOffer = async (
           signal: CreateOfferCallSignal
