@@ -22,7 +22,7 @@ const kitty = ChatKitty.getInstance('YOUR CHATKITTY API KEY HERE');
 
 ## Starting a guest user session
 
-You must create a [**user session**](../concepts/user-sessions.md) before a user can begin chatting with other users using ChatKitty. A user session represents a secure bi-directional connection with ChatKitty servers allowing users to send and receive messages in real-time.
+You must create a [**user session**](https://docs.chatkitty.com/concepts/user-sessions.md) before a user can begin chatting with other users using ChatKitty. A user session represents a secure bi-directional connection with ChatKitty servers allowing users to send and receive messages in real-time.
 
 Before you learn about authenticating users with ChatKitty, you can create a guest user session. You can start a user session by passing a unique **username** to your `ChatKitty` client `startSession()` method. A username is a string that uniquely identifies a user within your application.
 
@@ -62,7 +62,7 @@ After calling `initialize(...)`, the `ChatKitty.Calls` object creates a WebRTC M
 
 `kitty.Calls.localStream` exposes the React Native WebRTC MediaStream capturing video/audio from your device.
 
-```typescript
+```tsx
 import React from 'react';
 import { MediaStream, RTCView } from 'react-native-webrtc';
 
@@ -329,7 +329,7 @@ kitty.Calls.close();
 
 ## Ending the user session
 
-[End the user session](../concepts/user-sessions.md#ending-a-user-session) to log the user out, close their device's concurrent connection to ChatKitty and free up resources used by the ChatKitty SDK.
+[End the user session](https://docs.chatkitty.com/concepts/user-sessions.md#ending-a-user-session) to log the user out, close their device's concurrent connection to ChatKitty and free up resources used by the ChatKitty SDK.
 
 ```javascript
 kitty.endSession();
