@@ -269,18 +269,17 @@ export class ChatKitty {
 
     public isMuted: boolean = false;
 
-    private readonly callActiveSubject = new Subject<void>();
+    private readonly callActiveSubject = new Subject<Call>();
 
     private readonly participantAcceptedCallSubject = new Subject<User>();
     private readonly participantRejectedCallSubject = new Subject<User>();
-    private readonly participantEnteredCallSubject = new Subject<User>();
-    private readonly participantAddedStreamSubject = new Subject<{
+    private readonly participantActiveSubject = new Subject<{
       user: User;
       stream: MediaStream;
     }>();
     private readonly participantLeftCallSubject = new Subject<User>();
 
-    private readonly callEndedSubject = new Subject<void>();
+    private readonly callEndedSubject = new Subject<Call>();
 
     private endCallUnsubscribe?: ChatKittyUnsubscribe;
 
@@ -463,13 +462,13 @@ export class ChatKitty {
     }
 
     public onCallActive(
-      onNextOrObserver: ChatKittyObserver<void> | (() => void)
+      onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
     ): ChatKittyUnsubscribe {
-      const subscription = this.callActiveSubject.subscribe(() => {
+      const subscription = this.callActiveSubject.subscribe((call) => {
         if (typeof onNextOrObserver === 'function') {
-          onNextOrObserver();
+          onNextOrObserver(call);
         } else {
-          onNextOrObserver.onNext();
+          onNextOrObserver.onNext(call);
         }
       });
 
@@ -508,36 +507,18 @@ export class ChatKitty {
       return () => subscription.unsubscribe();
     }
 
-    public onParticipantEnteredCall(
-      onNextOrObserver: ChatKittyObserver<User> | ((user: User) => void)
-    ): ChatKittyUnsubscribe {
-      const subscription = this.participantEnteredCallSubject.subscribe(
-        (user) => {
-          if (typeof onNextOrObserver === 'function') {
-            onNextOrObserver(user);
-          } else {
-            onNextOrObserver.onNext(user);
-          }
-        }
-      );
-
-      return () => subscription.unsubscribe();
-    }
-
-    public onParticipantAddedStream(
+    public onParticipantActive(
       onNextOrObserver:
         | ChatKittyObserver<{ user: User; stream: MediaStream }>
         | ((user: User, stream: MediaStream) => void)
     ): ChatKittyUnsubscribe {
-      const subscription = this.participantAddedStreamSubject.subscribe(
-        (event) => {
-          if (typeof onNextOrObserver === 'function') {
-            onNextOrObserver(event.user, event.stream);
-          } else {
-            onNextOrObserver.onNext(event);
-          }
+      const subscription = this.participantActiveSubject.subscribe((event) => {
+        if (typeof onNextOrObserver === 'function') {
+          onNextOrObserver(event.user, event.stream);
+        } else {
+          onNextOrObserver.onNext(event);
         }
-      );
+      });
 
       return () => subscription.unsubscribe();
     }
@@ -557,13 +538,13 @@ export class ChatKitty {
     }
 
     public onCallEnded(
-      onNextOrObserver: ChatKittyObserver<void> | (() => void)
+      onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
     ): ChatKittyUnsubscribe {
-      const subscription = this.callEndedSubject.subscribe(() => {
+      const subscription = this.callEndedSubject.subscribe((call) => {
         if (typeof onNextOrObserver === 'function') {
-          onNextOrObserver();
+          onNextOrObserver(call);
         } else {
-          onNextOrObserver.onNext();
+          onNextOrObserver.onNext(call);
         }
       });
 
@@ -578,7 +559,6 @@ export class ChatKitty {
       return new Promise((resolve) => {
         let participantAcceptedCallUnsubscribe: () => void;
         let participantRejectedCallUnsubscribe: () => void;
-        let participantEnteredCallUnsubscribe: () => void;
         let participantLeftCallUnsubscribe: () => void;
 
         participantAcceptedCallUnsubscribe =
@@ -596,15 +576,6 @@ export class ChatKitty {
             event: 'call.participant.rejected',
             onSuccess: (user) => {
               this.participantRejectedCallSubject.next(user);
-            },
-          });
-
-        participantEnteredCallUnsubscribe =
-          this.kitty.stompX.listenForEvent<User>({
-            topic: call._topics.participants,
-            event: 'call.participant.entered',
-            onSuccess: (user) => {
-              this.participantEnteredCallSubject.next(user);
             },
           });
 
@@ -636,7 +607,6 @@ export class ChatKitty {
 
         let end = () => {
           participantLeftCallUnsubscribe?.();
-          participantEnteredCallUnsubscribe?.();
           participantRejectedCallUnsubscribe?.();
           participantAcceptedCallUnsubscribe?.();
 
@@ -675,7 +645,7 @@ export class ChatKitty {
             <MediaStream>this.localStream,
             signalDispatcher,
             (user: User, stream: MediaStream) =>
-              this.participantAddedStreamSubject.next({ user, stream })
+              this.participantActiveSubject.next({ user, stream })
           );
 
           await connection.createOffer();
@@ -695,7 +665,7 @@ export class ChatKitty {
             <MediaStream>this.localStream,
             signalDispatcher,
             (user: User, stream: MediaStream) =>
-              this.participantAddedStreamSubject.next({ user, stream })
+              this.participantActiveSubject.next({ user, stream })
           );
 
           connections.set(peer.id, connection);
@@ -2442,7 +2412,7 @@ interface Calls {
   ): ChatKittyUnsubscribe;
 
   onCallActive(
-    onNextOrObserver: ChatKittyObserver<void> | (() => void)
+    onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
   ): ChatKittyUnsubscribe;
 
   onParticipantAcceptedCall(
@@ -2453,11 +2423,7 @@ interface Calls {
     onNextOrObserver: ChatKittyObserver<User> | ((user: User) => void)
   ): ChatKittyUnsubscribe;
 
-  onParticipantEnteredCall(
-    onNextOrObserver: ChatKittyObserver<User> | ((user: User) => void)
-  ): ChatKittyUnsubscribe;
-
-  onParticipantAddedStream(
+  onParticipantActive(
     onNextOrObserver:
       | ChatKittyObserver<{ user: User; stream: MediaStream }>
       | ((user: User, stream: MediaStream) => void)
@@ -2468,7 +2434,7 @@ interface Calls {
   ): ChatKittyUnsubscribe;
 
   onCallEnded(
-    onNextOrObserver: ChatKittyObserver<void> | (() => void)
+    onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
   ): ChatKittyUnsubscribe;
 
   close(): void;
@@ -2503,7 +2469,7 @@ class P2PConnection implements Connection {
     private readonly peer: User,
     private readonly stream: MediaStream,
     private readonly signalDispatcher: CallSignalDispatcher,
-    private readonly onParticipantAddedStream?: (
+    private readonly onParticipantActive?: (
       user: User,
       stream: MediaStream
     ) => void
@@ -2528,7 +2494,7 @@ class P2PConnection implements Connection {
     };
 
     this.rtcPeerConnection.onaddstream = (event) => {
-      this.onParticipantAddedStream?.(peer, event.stream);
+      this.onParticipantActive?.(peer, event.stream);
     };
 
     this.rtcPeerConnection.onconnectionstatechange = () => {

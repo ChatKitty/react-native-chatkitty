@@ -18,7 +18,6 @@ const CallScreen = () => {
   const {
     localStream,
     remoteStream,
-    callSession,
     remoteUser,
     isMuted,
     closeCall,
@@ -45,7 +44,7 @@ const CallScreen = () => {
           />
         </View>
       )}
-      {!callSession && (
+      {!remoteStream && (
         <View style={styles.spinnerWrapper}>
           <ActivityIndicator color="#341EFF" size={120} />
           <Text style={styles.callingText}>Calling {remoteUser?.name}</Text>

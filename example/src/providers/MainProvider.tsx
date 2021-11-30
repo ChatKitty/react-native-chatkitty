@@ -149,7 +149,7 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
       navigate('Users');
     });
 
-    kitty.Calls.onParticipantAddedStream((participant, stream) => {
+    kitty.Calls.onParticipantActive((participant, stream) => {
       setRemoteUser(participant);
       setRemoteStream(stream);
     });
