@@ -174,19 +174,13 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
   };
 
   const switchCamera = () => {
-    if (localStream) {
-      // @ts-ignore
-      localStream.getVideoTracks().forEach((track) => track._switchCamera());
-    }
+    kitty.Calls.switchCamera();
   };
 
   const toggleMute = () => {
-    if (localStream) {
-      localStream.getAudioTracks().forEach((track) => {
-        track.enabled = !track.enabled;
-        setIsMuted(!track.enabled);
-      });
-    }
+    kitty.Calls.toggleMute();
+
+    setIsMuted(kitty.Calls.isMuted);
   };
 
   const closeCall = () => {
