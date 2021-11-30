@@ -24,7 +24,7 @@ const kitty = ChatKitty.getInstance('YOUR CHATKITTY API KEY HERE');
 
 You must create a [**user session**](../concepts/user-sessions.md) before a user can begin chatting with other users using ChatKitty. A user session represents a secure bi-directional connection with ChatKitty servers allowing users to send and receive messages in real-time.
 
-Before you learn about authenticating users with ChatKitty, you can create a guest user session. You can start a user session by passing a unique **username** to your [`ChatKitty`](https://chatkitty.github.io/chatkitty-js/classes/chatkitty.chatkitty-1.html) client [`startSession()`](https://chatkitty.github.io/chatkitty-js/classes/chatkitty.chatkitty-1.html#startsession) method. A username is a string that uniquely identifies a user within your application.
+Before you learn about authenticating users with ChatKitty, you can create a guest user session. You can start a user session by passing a unique **username** to your `ChatKitty` client `startSession()` method. A username is a string that uniquely identifies a user within your application.
 
 ```typescript
 import {
