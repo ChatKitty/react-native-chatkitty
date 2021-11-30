@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import { MediaStream } from 'react-native-webrtc';
 import { MainContext as MainContextType } from '../contexts';
 import { navigate } from '../navigation';
 import {
+  GetCallSucceededResult,
   GetUsersSucceededResult,
   succeeded,
   User,
 } from 'react-native-chatkitty';
+import RNCallKeep from 'react-native-callkeep';
 import kitty from '../chatkitty';
 
 const initialValues: MainContextType = {
@@ -51,11 +53,38 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
     await kitty.startSession({ username: username });
 
     await kitty.Calls.initialize({
-      appName: 'ChatKittyReactNativeDemo',
       media: { audio: true, video: true },
     });
 
     setLocalStream(kitty.Calls.localStream);
+
+    await RNCallKeep.setup({
+      ios: {
+        appName: 'ChatKittyReactNativeDemo',
+      },
+      android: {
+        alertTitle: 'Permissions required',
+        alertDescription:
+          'This application needs to access your phone accounts',
+        cancelButton: 'Cancel',
+        okButton: 'ok',
+        additionalPermissions: [],
+      },
+    });
+
+    RNCallKeep.setAvailable(true);
+
+    RNCallKeep.addEventListener('answerCall', async ({ callUUID }) => {
+      RNCallKeep.endCall(callUUID);
+
+      // Open from background
+
+      const result = await kitty.Calls.getCall(callUUID);
+
+      if (succeeded<GetCallSucceededResult>(result)) {
+        await kitty.Calls.acceptCall({ call: result.call });
+      }
+    });
 
     const fetchUsers = async () => {
       const getUsersResult = await kitty.getUsers({ filter: { online: true } });
@@ -72,28 +101,42 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
     });
 
     kitty.Calls.onCallInvite((call) => {
-      Alert.alert(
-        'New Call',
-        'You have a new call from ' + call.creator.displayName,
-        [
-          {
-            text: 'Reject',
-            onPress: async () => {
-              await kitty.Calls.rejectCall({ call });
-            },
-            style: 'cancel',
-          },
-          {
-            text: 'Accept',
-            onPress: async () => {
-              await kitty.Calls.acceptCall({ call });
+      console.log('onCallInvite: ', AppState.currentState);
 
-              navigate('Call');
+      if (AppState.currentState === 'active') {
+        Alert.alert(
+          'New Call',
+          'You have a new call from ' + call.creator.displayName,
+          [
+            {
+              text: 'Reject',
+              onPress: async () => {
+                await kitty.Calls.rejectCall({ call });
+              },
+              style: 'cancel',
             },
-          },
-        ],
-        { cancelable: false }
-      );
+            {
+              text: 'Accept',
+              onPress: async () => {
+                await kitty.Calls.acceptCall({ call });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      } else {
+        RNCallKeep.displayIncomingCall(
+          `${call.id}`,
+          call.creator.name,
+          call.creator.displayName,
+          'generic',
+          true
+        );
+      }
+    });
+
+    kitty.Calls.onAcceptedCall(() => {
+      navigate('Call');
     });
 
     kitty.Calls.onParticipantAcceptedCall((participant) => {

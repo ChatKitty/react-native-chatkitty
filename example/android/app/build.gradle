@@ -204,7 +204,9 @@ dependencies {
         implementation jscFlavor
     }
 
-    implementation project(':reactnativechatkitty')
+  implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
+    implementation project(':react-native-chatkitty')
+    implementation project(':react-native-callkeep')
 }
 
 // Run this once to be able to run the application with BUCK

@@ -213,7 +213,6 @@ import {
   isDisconnectPeerCallSignal,
   isSendDescriptionCallSignal,
 } from './call-signal';
-import RNCallKeep from 'react-native-callkeep';
 
 export class ChatKitty {
   private static readonly _instances = new Map<string, ChatKitty>();
@@ -268,6 +267,9 @@ export class ChatKitty {
 
     public activeCall: Call | null = null;
 
+    private readonly acceptedCallSubject = new Subject<void>();
+    private readonly rejectedCallSubject = new Subject<void>();
+
     private readonly participantAcceptedCallSubject = new Subject<User>();
     private readonly participantRejectedCallSubject = new Subject<User>();
     private readonly participantEnteredCallSubject = new Subject<User>();
@@ -276,65 +278,16 @@ export class ChatKitty {
       stream: MediaStream;
     }>();
     private readonly participantLeftCallSubject = new Subject<User>();
-    private readonly callEndedSubject = new Subject<Call>();
+
+    private readonly callEndedSubject = new Subject<void>();
 
     private endCallUnsubscribe?: ChatKittyUnsubscribe;
 
     constructor(private readonly kitty: ChatKitty) {}
 
     public async initialize(configuration: {
-      appName: string;
       media: { audio: boolean; video: boolean };
     }) {
-      // await RNCallKeep.setup({
-      //   ios: {
-      //     appName: configuration.appName,
-      //   },
-      //   android: {
-      //     alertTitle: 'Permissions required',
-      //     alertDescription:
-      //       'This application needs to access your phone accounts',
-      //     cancelButton: 'Cancel',
-      //     okButton: 'ok',
-      //     additionalPermissions: [],
-      //   },
-      // });
-
-      RNCallKeep.setAvailable(true);
-
-      RNCallKeep.addEventListener('answerCall', async ({ callUUID }) => {
-        RNCallKeep.endCall(callUUID);
-
-        const result = await this.getCall(callUUID);
-
-        if (succeeded<GetCallSucceededResult>(result)) {
-          await this.startCallSession(result.call);
-        }
-      });
-
-      let displayIncomingCallUnsubscribe: ChatKittyUnsubscribe | undefined;
-
-      this.kitty.currentUserSubject.subscribe((user) => {
-        displayIncomingCallUnsubscribe?.();
-
-        if (user) {
-          displayIncomingCallUnsubscribe =
-            this.kitty.stompX.listenForEvent<Call>({
-              topic: user._topics.calls,
-              event: 'me.call.invited',
-              onSuccess: (call) => {
-                RNCallKeep.displayIncomingCall(
-                  `${call.id}`,
-                  call.creator.name,
-                  call.creator.displayName,
-                  'generic',
-                  true
-                );
-              },
-            });
-        }
-      });
-
       const isFrontCamera = true;
       const devices = await mediaDevices.enumerateDevices();
 
@@ -405,9 +358,11 @@ export class ChatKitty {
 
     public acceptCall(request: AcceptCallRequest): Promise<AcceptCallResult> {
       return new Promise((resolve) => {
-        this.startCallSession(request.call).then(() =>
-          resolve(new AcceptedCallResult(request.call))
-        );
+        this.startCallSession(request.call).then(() => {
+          this.acceptedCallSubject.next();
+
+          resolve(new AcceptedCallResult(request.call));
+        });
       });
     }
 
@@ -417,6 +372,8 @@ export class ChatKitty {
           destination: request.call._actions.reject,
           body: {},
           onSuccess: (call) => {
+            this.rejectedCallSubject.next();
+
             resolve(new RejectedCallResult(call));
           },
           onError: (error) => {
@@ -487,6 +444,34 @@ export class ChatKitty {
       });
 
       return () => unsubscribe;
+    }
+
+    public onAcceptedCall(
+      onNextOrObserver: ChatKittyObserver<void> | (() => void)
+    ): ChatKittyUnsubscribe {
+      const subscription = this.acceptedCallSubject.subscribe(() => {
+        if (typeof onNextOrObserver === 'function') {
+          onNextOrObserver();
+        } else {
+          onNextOrObserver.onNext();
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    }
+
+    public onRejectedCall(
+      onNextOrObserver: ChatKittyObserver<void> | (() => void)
+    ): ChatKittyUnsubscribe {
+      const subscription = this.rejectedCallSubject.subscribe(() => {
+        if (typeof onNextOrObserver === 'function') {
+          onNextOrObserver();
+        } else {
+          onNextOrObserver.onNext();
+        }
+      });
+
+      return () => subscription.unsubscribe();
     }
 
     public onParticipantAcceptedCall(
@@ -570,13 +555,13 @@ export class ChatKitty {
     }
 
     public onCallEnded(
-      onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
+      onNextOrObserver: ChatKittyObserver<void> | (() => void)
     ): ChatKittyUnsubscribe {
-      const subscription = this.callEndedSubject.subscribe((call) => {
+      const subscription = this.callEndedSubject.subscribe(() => {
         if (typeof onNextOrObserver === 'function') {
-          onNextOrObserver(call);
+          onNextOrObserver();
         } else {
-          onNextOrObserver.onNext(call);
+          onNextOrObserver.onNext();
         }
       });
 
@@ -584,7 +569,7 @@ export class ChatKitty {
     }
 
     public close() {
-      RNCallKeep.setAvailable(false);
+      this.endCallUnsubscribe?.();
     }
 
     private startCallSession(call: Call): Promise<void> {
@@ -656,17 +641,15 @@ export class ChatKitty {
           receivedCallSignalUnsubscribe();
 
           signalsSubscription.unsubscribe();
-
-          RNCallKeep.endCall(`${call.id}`);
         };
 
         const endedCallUnsubscribe = this.kitty.stompX.listenForEvent<Call>({
           topic: call._topics.self,
           event: 'call.self.ended',
-          onSuccess: (c) => {
+          onSuccess: () => {
             end();
 
-            this.callEndedSubject.next(c);
+            this.callEndedSubject.next();
           },
         });
 
@@ -787,7 +770,12 @@ export class ChatKitty {
 
         this.activeCall = call;
 
-        this.endCallUnsubscribe = () => end();
+        this.endCallUnsubscribe = () => {
+          end();
+
+          this.activeCall = null;
+          this.endCallUnsubscribe = undefined;
+        };
       });
     }
   })(this);
@@ -2421,7 +2409,6 @@ interface Calls {
   activeCall: Call | null;
 
   initialize(configuration: {
-    appName: string;
     media: { audio: boolean; video: boolean };
   }): void;
 
@@ -2429,11 +2416,20 @@ interface Calls {
   acceptCall(request: AcceptCallRequest): Promise<AcceptCallResult>;
   rejectCall(request: RejectCallRequest): Promise<RejectCallResult>;
   leaveCall(): void;
+
   getCalls(request: GetCallsRequest): Promise<GetCallsResult>;
   getCall(id: number): Promise<GetCallResult>;
 
   onCallInvite(
     onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
+  ): ChatKittyUnsubscribe;
+
+  onAcceptedCall(
+    onNextOrObserver: ChatKittyObserver<void> | (() => void)
+  ): ChatKittyUnsubscribe;
+
+  onRejectedCall(
+    onNextOrObserver: ChatKittyObserver<void> | (() => void)
   ): ChatKittyUnsubscribe;
 
   onParticipantAcceptedCall(
@@ -2459,7 +2455,7 @@ interface Calls {
   ): ChatKittyUnsubscribe;
 
   onCallEnded(
-    onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
+    onNextOrObserver: ChatKittyObserver<void> | (() => void)
   ): ChatKittyUnsubscribe;
 
   close(): void;
