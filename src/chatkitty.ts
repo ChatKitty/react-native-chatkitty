@@ -269,8 +269,7 @@ export class ChatKitty {
 
     public isMuted: boolean = false;
 
-    private readonly acceptedCallSubject = new Subject<void>();
-    private readonly rejectedCallSubject = new Subject<void>();
+    private readonly callActiveSubject = new Subject<void>();
 
     private readonly participantAcceptedCallSubject = new Subject<User>();
     private readonly participantRejectedCallSubject = new Subject<User>();
@@ -361,8 +360,6 @@ export class ChatKitty {
     public acceptCall(request: AcceptCallRequest): Promise<AcceptCallResult> {
       return new Promise((resolve) => {
         this.startCallSession(request.call).then(() => {
-          this.acceptedCallSubject.next();
-
           resolve(new AcceptedCallResult(request.call));
         });
       });
@@ -374,8 +371,6 @@ export class ChatKitty {
           destination: request.call._actions.reject,
           body: {},
           onSuccess: (call) => {
-            this.rejectedCallSubject.next();
-
             resolve(new RejectedCallResult(call));
           },
           onError: (error) => {
@@ -467,24 +462,10 @@ export class ChatKitty {
       return () => unsubscribe;
     }
 
-    public onAcceptedCall(
+    public onCallActive(
       onNextOrObserver: ChatKittyObserver<void> | (() => void)
     ): ChatKittyUnsubscribe {
-      const subscription = this.acceptedCallSubject.subscribe(() => {
-        if (typeof onNextOrObserver === 'function') {
-          onNextOrObserver();
-        } else {
-          onNextOrObserver.onNext();
-        }
-      });
-
-      return () => subscription.unsubscribe();
-    }
-
-    public onRejectedCall(
-      onNextOrObserver: ChatKittyObserver<void> | (() => void)
-    ): ChatKittyUnsubscribe {
-      const subscription = this.rejectedCallSubject.subscribe(() => {
+      const subscription = this.callActiveSubject.subscribe(() => {
         if (typeof onNextOrObserver === 'function') {
           onNextOrObserver();
         } else {
@@ -729,33 +710,37 @@ export class ChatKitty {
         };
 
         const signalsSubscription = signalSubject.subscribe({
-          next: (signal) => {
-            if (isCreateOfferCallSignal(signal)) {
-              onCreateOffer(signal).then();
-            }
-
-            if (isAnswerOfferCallSignal(signal)) {
-              onAnswerOffer(signal);
-            }
-
-            if (isAddCandidateCallSignal(signal)) {
-              const connection = connections.get(signal.peer.id);
-
-              if (connection) {
-                connection.addCandidate(signal.payload).then();
+          next: async (signal) => {
+            try {
+              if (isCreateOfferCallSignal(signal)) {
+                await onCreateOffer(signal);
               }
-            }
 
-            if (isSendDescriptionCallSignal(signal)) {
-              const connection = connections.get(signal.peer.id);
-
-              if (connection) {
-                connection.answerOffer(signal.payload).then();
+              if (isAnswerOfferCallSignal(signal)) {
+                await onAnswerOffer(signal);
               }
-            }
 
-            if (isDisconnectPeerCallSignal(signal)) {
-              onDisconnect(signal);
+              if (isAddCandidateCallSignal(signal)) {
+                const connection = connections.get(signal.peer.id);
+
+                if (connection) {
+                  await connection.addCandidate(signal.payload);
+                }
+              }
+
+              if (isSendDescriptionCallSignal(signal)) {
+                const connection = connections.get(signal.peer.id);
+
+                if (connection) {
+                  await connection.answerOffer(signal.payload);
+                }
+              }
+
+              if (isDisconnectPeerCallSignal(signal)) {
+                await onDisconnect(signal);
+              }
+            } catch (e) {
+              console.log(e);
             }
           },
         });
@@ -787,20 +772,22 @@ export class ChatKitty {
               destination: call._actions.ready,
               body: {},
               onSent: () => {
+                this.activeCall = call;
+
+                this.endCallUnsubscribe = () => {
+                  end();
+
+                  this.activeCall = null;
+                  this.endCallUnsubscribe = undefined;
+                };
+
+                this.callActiveSubject.next();
+
                 resolve();
               },
             });
           },
         });
-
-        this.activeCall = call;
-
-        this.endCallUnsubscribe = () => {
-          end();
-
-          this.activeCall = null;
-          this.endCallUnsubscribe = undefined;
-        };
       });
     }
   })(this);
@@ -2454,11 +2441,7 @@ interface Calls {
     onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
   ): ChatKittyUnsubscribe;
 
-  onAcceptedCall(
-    onNextOrObserver: ChatKittyObserver<void> | (() => void)
-  ): ChatKittyUnsubscribe;
-
-  onRejectedCall(
+  onCallActive(
     onNextOrObserver: ChatKittyObserver<void> | (() => void)
   ): ChatKittyUnsubscribe;
 

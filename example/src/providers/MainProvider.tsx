@@ -101,8 +101,6 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
     });
 
     kitty.Calls.onCallInvite((call) => {
-      console.log('onCallInvite: ', AppState.currentState);
-
       if (AppState.currentState === 'active') {
         Alert.alert(
           'New Call',
@@ -135,13 +133,11 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
       }
     });
 
-    kitty.Calls.onAcceptedCall(() => {
+    kitty.Calls.onCallActive(() => {
       navigate('Call');
     });
 
     kitty.Calls.onParticipantAcceptedCall((participant) => {
-      console.log('onParticipantAcceptedCall');
-
       setRemoteUser(participant);
     });
 
@@ -164,13 +160,7 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
   };
 
   const call = async (user: User) => {
-    console.log('Starting call...');
-
     await kitty.Calls.startCall({ members: [{ username: user.name }] });
-
-    console.log('Started call...');
-
-    navigate('Call');
   };
 
   const switchCamera = () => {
