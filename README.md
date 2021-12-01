@@ -4,10 +4,10 @@ Build text chat and video/audio calls into your React Native application with Ch
 
 ## Installing the ChatKitty React Native SDK
 
-To use the ChatKitty React Native Calls SDK, you'll need to add the [ChatKitty React Native SDK](https://www.npmjs.com/package/react-native-chatkitty) NPM package to your React Native project:
+To use the ChatKitty React Native Calls SDK, you'll need to add the [ChatKitty React Native SDK](https://www.npmjs.com/package/react-native-chatkitty) NPM package to your React Native project. You'll also need the [react-native-webrtc](https://www.npmjs.com/package/react-native-webrtc) package installed to access the WebRTC APIs:
 
 ```
-yarn add react-native-chatkitty
+yarn add react-native-chatkitty react-native-webrtc
 ```
 
 ## Initializing the ChatKitty React Native SDK with your API key
