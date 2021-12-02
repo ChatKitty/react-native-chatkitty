@@ -1,6 +1,38 @@
-# react-native-chatkitty
+# React Native ChatKitty
 
-Build text chat and video/audio calls into your React Native application with ChatKitty.
+Build text chat and video/audio calls into your React Native application in minutes.
+
+For more information about **ChatKitty** on React Native, please see [our documentation site](https://docs.chatkitty.com/getting-started/react-native-video-voice-calls-quick-start).
+
+#  Summary
+- [Demo](#Demo)
+- [Installation](#Installation)
+- [Usage](#initializing-the-chatkitty-react-native-sdk-with-your-api-key)
+- [Contributing](#Contributing)
+- [License](#License)
+
+## Demo
+A demo of `react-native-chatkitty` is available in the `example` subdirectory of this repository.
+
+To run it, clone this repo and from its root directory, enter the `example` directory:
+```bash
+cd example
+```
+
+Start the React Native Metro Bundler:
+```bash
+yarn start
+```
+
+For Android devices then run:
+```bash
+yarn android
+```
+
+And for iOS:
+```bash
+yarn ios
+```
 
 ## Installing the ChatKitty React Native SDK
 
