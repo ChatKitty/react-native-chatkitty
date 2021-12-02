@@ -6,7 +6,7 @@ For more information about **ChatKitty** on React Native, please see [our docume
 
 #  Summary
 - [Demo](#Demo)
-- [Installation](#Installation)
+- [Installation](#installing-the-chatkitty-react-native-sdk)
 - [Usage](#initializing-the-chatkitty-react-native-sdk-with-your-api-key)
 - [Contributing](#Contributing)
 - [License](#License)
