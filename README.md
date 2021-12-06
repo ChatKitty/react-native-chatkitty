@@ -44,7 +44,7 @@ yarn add react-native-chatkitty react-native-webrtc
 
 ## Initializing the ChatKitty React Native SDK with your API key
 
-With your API key from the[ ChatKitty dashboard](https://dashboard.chatkitty.com/authorization/register), you can initialize a new instance of the ChatKitty client:
+With your API key from the [ChatKitty dashboard](https://dashboard.chatkitty.com/authorization/register), you can initialize a new instance of the ChatKitty client:
 
 ```javascript
 import ChatKitty from 'react-native-chatkitty';
@@ -61,7 +61,6 @@ Before you learn about authenticating users with ChatKitty, you can create a gue
 ```typescript
 import {
   failed,
-  StartedSessionResult,
   succeeded,
 } from 'react-native-chatkitty';
 
@@ -69,7 +68,7 @@ const result = await kitty.startSession({
   username: 'jane@chatkitty.com',
 });
 
-if (succeeded<StartedSessionResult>(result)) {
+if (succeeded(result)) {
   const session = result.session; // Handle session
 }
 
@@ -128,14 +127,13 @@ You can fetch a list of other users that are online.
 
 ```typescript
 import {
-  GetUsersSucceededResult,
   succeeded,
   User,
 } from 'react-native-chatkitty';
 
 const result = await kitty.getUsers({ filter: { online: true } });
 
-if (succeeded<GetUsersSucceededResult>(result)) {
+if (succeeded(result)) {
   const users: User[] = result.paginator.items;
 }
 ```
@@ -307,7 +305,6 @@ Retrieve past calls.
 ```typescript
 import {
   Call,
-  GetCallsSucceededResult,
   succeeded,
 } from 'react-native-chatkitty';
 
@@ -316,7 +313,7 @@ const result = await kitty.Calls.getCalls({
   filter: { active: false },
 });
 
-if (succeeded<GetCallsSucceededResult>(result)) {
+if (succeeded(result)) {
   const calls: Call[] = result.paginator.items;
 }
 ```
@@ -340,13 +337,12 @@ Retrieve a call with its ID.
 ```typescript
 import {
   Call,
-  GetCallSucceededResult,
   succeeded,
 } from 'react-native-chatkitty';
 
 const result = await kitty.Calls.getCall(id);
 
-if (succeeded<GetCallSucceededResult>(result)) {
+if (succeeded(result)) {
   const call: Call = result.call;
 }
 ```

@@ -2977,6 +2977,17 @@ chardet@^0.7.0:
   resolved "https://registry.yarnpkg.com/chardet/-/chardet-0.7.0.tgz#90094849f0937f2eedc2425d0d28a9e5f0cbad9e"
   integrity sha512-mT8iDcrh03qDGRRmoA2hmBJnxpllMR+0/0qlzjqZES6NdiWDcZkCNAk4rPFZ9Q85r27unkiNNg8ZOiwZXBHwcA==
 
+chatkitty@^1.53.5:
+  version "1.53.5"
+  resolved "https://registry.yarnpkg.com/chatkitty/-/chatkitty-1.53.5.tgz#5da01d67e6d3f92aafcb83603f3fdc1a76c8672f"
+  integrity sha512-8v9RAuKhfA3uC4dRfsc8/JNQ28Y61iklmu7bsKkrJkjmaoaWkXQuLFh0ibeyFErsqpxly/sora0Md5zgranoog==
+  dependencies:
+    "@stomp/rx-stomp" "^1.1.2"
+    axios "^0.21.1"
+    rxjs "^6.6.7"
+    sockjs-client "^1.5.1"
+    text-encoding "^0.7.0"
+
 chownr@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/chownr/-/chownr-2.0.0.tgz#15bfbe53d2eab4cf70f18a8cd68ebe5b3cb1dece"

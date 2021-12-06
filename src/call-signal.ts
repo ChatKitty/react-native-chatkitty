@@ -2,10 +2,12 @@ import {
   RTCIceCandidateType,
   RTCSessionDescriptionType,
 } from 'react-native-webrtc';
-
-import { ChatKittyModelReference } from './model';
-import { ChatKittyFailedResult, ChatKittySucceededResult } from './result';
-import { User } from './user';
+import {
+  ChatKittyFailedResult,
+  ChatKittyModelReference,
+  ChatKittySucceededResult,
+  User,
+} from 'chatkitty';
 
 export type CallSignal =
   | CreateOfferCallSignal
