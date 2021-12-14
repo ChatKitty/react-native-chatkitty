@@ -1,4 +1,4 @@
-# React Native ChatKitty
+# ChatKitty React Native
 
 Build text chat and video/audio calls into your React Native application in minutes.
 
