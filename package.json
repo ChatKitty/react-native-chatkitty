@@ -1,6 +1,6 @@
 {
   "name": "react-native-chatkitty",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "ChatKitty React Native SDK",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -49,7 +49,7 @@
   "dependencies": {
     "@stomp/rx-stomp": "^1.1.2",
     "axios": "^0.21.1",
-    "chatkitty": "^1.53.5",
+    "chatkitty": "^1.53.6",
     "rxjs": "^6.6.7",
     "sockjs-client": "^1.5.1",
     "text-encoding": "^0.7.0"
