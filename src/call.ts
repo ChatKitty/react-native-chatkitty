@@ -1,12 +1,8 @@
-import {
-  Channel,
-  ChatKittyError,
-  ChatKittyFailedResult,
-  ChatKittyPaginator,
-  ChatKittySucceededResult,
-  ChatKittyUserReference,
-  User,
-} from 'chatkitty';
+import { ChatKittyUserReference, User } from './user';
+import { Channel } from './channel';
+import { ChatKittyFailedResult, ChatKittySucceededResult } from './result';
+import { ChatKittyPaginator } from './pagination';
+import { ChatKittyError } from './error';
 
 export type Call = ConferenceCall | PresenterCall;
 
