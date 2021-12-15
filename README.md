@@ -77,9 +77,9 @@ if (failed(result)) {
 }
 ```
 
-## Initializing the React Native Calls SDK context
+## Initializing the Camera and Audio
 
-Before you can begin using the ChatKitty React Native Calls SDK, you'll need to initialize the `ChatKitty.Calls` context object on your `ChatKitty` instance.
+Before you can begin a call, you'll need to initialize your device's camera in the `ChatKitty.Calls` context object.
 
 ```javascript
 await kitty.Calls.initialize({
