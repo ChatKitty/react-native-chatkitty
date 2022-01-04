@@ -588,6 +588,7 @@ export class ChatKitty {
 
     public close() {
       this.endCallUnsubscribe?.();
+      this.localStream?.release();
     }
 
     private startCallSession(call: Call): Promise<void> {
