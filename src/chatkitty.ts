@@ -787,7 +787,7 @@ export class ChatKitty {
                   this.endCallUnsubscribe = undefined;
                 };
 
-                this.callActiveSubject.next();
+                this.callActiveSubject.next(call);
 
                 resolve();
               },
