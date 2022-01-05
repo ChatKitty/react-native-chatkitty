@@ -487,7 +487,7 @@ export class ChatKitty {
     public onCallInvite(
       onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
     ): ChatKittyUnsubscribe {
-      const user = this.kitty.currentUserSubject.value;
+      const user = this.kitty.currentUser;
 
       if (!user) {
         throw new NoActiveSessionError();
