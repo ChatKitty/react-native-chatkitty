@@ -302,6 +302,8 @@ export class ChatKitty {
 
     public isMuted: boolean = false;
 
+    public isCameraOn: boolean = false;
+
     private readonly callActiveSubject = new Subject<Call>();
 
     private readonly participantAcceptedCallSubject = new Subject<User>();
@@ -432,7 +434,17 @@ export class ChatKitty {
         this.localStream.getAudioTracks().forEach((track) => {
           track.enabled = !track.enabled;
 
-          this.isMuted = track.enabled;
+          this.isMuted = !track.enabled;
+        });
+      }
+    };
+
+    toggleCamera = () => {
+      if (this.localStream) {
+        this.localStream.getVideoTracks().forEach((track) => {
+          track.enabled = !track.enabled;
+
+          this.isCameraOn = track.enabled;
         });
       }
     };
@@ -2713,6 +2725,8 @@ interface Calls {
 
   isMuted: boolean;
 
+  isCameraOn: boolean;
+
   initialize(configuration: {
     media: { audio: boolean; video: boolean };
   }): void;
@@ -2724,6 +2738,7 @@ interface Calls {
 
   switchCamera(): void;
   toggleMute(): void;
+  toggleCamera(): void;
 
   getCalls(request: GetCallsRequest): Promise<GetCallsResult>;
   getCall(id: number): Promise<GetCallResult>;
