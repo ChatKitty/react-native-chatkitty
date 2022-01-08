@@ -20,9 +20,9 @@ import {
   GetCallsResult,
   GetCallsSucceededResult,
   GetCallSucceededResult,
-  RejectCallRequest,
-  RejectCallResult,
-  RejectedCallResult,
+  DeclineCallRequest,
+  DeclineCallResult,
+  DeclinedCallResult,
   StartCallRequest,
   StartCallResult,
   StartedCallResult,
@@ -298,16 +298,14 @@ export class ChatKitty {
 
     public localStream: MediaStream | null = null;
 
-    public activeCall: Call | null = null;
+    public currentCall: Call | null = null;
 
     public isMuted: boolean = false;
 
     public isCameraOn: boolean = false;
 
-    private readonly callActiveSubject = new Subject<Call>();
-
     private readonly participantAcceptedCallSubject = new Subject<User>();
-    private readonly participantRejectedCallSubject = new Subject<User>();
+    private readonly participantDeclinedCallSubject = new Subject<User>();
     private readonly participantActiveSubject = new Subject<{
       user: User;
       stream: MediaStream;
@@ -401,13 +399,15 @@ export class ChatKitty {
       });
     }
 
-    public rejectCall(request: RejectCallRequest): Promise<RejectCallResult> {
+    public declineCall(
+      request: DeclineCallRequest
+    ): Promise<DeclineCallResult> {
       return new Promise((resolve) => {
         this.kitty.stompX.sendAction<never>({
-          destination: request.call._actions.reject,
+          destination: request.call._actions.decline,
           body: {},
           onSuccess: (call) => {
-            resolve(new RejectedCallResult(call));
+            resolve(new DeclinedCallResult(call));
           },
           onError: (error) => {
             resolve(new ChatKittyFailedResult(error));
@@ -511,15 +511,25 @@ export class ChatKitty {
     public onCallActive(
       onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
     ): ChatKittyUnsubscribe {
-      const subscription = this.callActiveSubject.subscribe((call) => {
-        if (typeof onNextOrObserver === 'function') {
-          onNextOrObserver(call);
-        } else {
-          onNextOrObserver.onNext(call);
-        }
+      const user = this.kitty.currentUser;
+
+      if (!user) {
+        throw new NoActiveSessionError();
+      }
+
+      const unsubscribe = this.kitty.stompX.listenForEvent<Call>({
+        topic: user._topics.calls,
+        event: 'me.call.active',
+        onSuccess: (call) => {
+          if (typeof onNextOrObserver === 'function') {
+            onNextOrObserver(call);
+          } else {
+            onNextOrObserver.onNext(call);
+          }
+        },
       });
 
-      return () => subscription.unsubscribe();
+      return () => unsubscribe;
     }
 
     public onParticipantAcceptedCall(
@@ -538,10 +548,10 @@ export class ChatKitty {
       return () => subscription.unsubscribe();
     }
 
-    public onParticipantRejectedCall(
+    public onParticipantDeclinedCall(
       onNextOrObserver: ChatKittyObserver<User> | ((user: User) => void)
     ): ChatKittyUnsubscribe {
-      const subscription = this.participantRejectedCallSubject.subscribe(
+      const subscription = this.participantDeclinedCallSubject.subscribe(
         (user) => {
           if (typeof onNextOrObserver === 'function') {
             onNextOrObserver(user);
@@ -606,7 +616,7 @@ export class ChatKitty {
     private startCallSession(call: Call): Promise<void> {
       return new Promise((resolve) => {
         let participantAcceptedCallUnsubscribe: () => void;
-        let participantRejectedCallUnsubscribe: () => void;
+        let participantDeclinedCallUnsubscribe: () => void;
         let participantLeftCallUnsubscribe: () => void;
 
         participantAcceptedCallUnsubscribe =
@@ -618,12 +628,12 @@ export class ChatKitty {
             },
           });
 
-        participantRejectedCallUnsubscribe =
+        participantDeclinedCallUnsubscribe =
           this.kitty.stompX.listenForEvent<User>({
             topic: call._topics.participants,
-            event: 'call.participant.rejected',
+            event: 'call.participant.declined',
             onSuccess: (user) => {
-              this.participantRejectedCallSubject.next(user);
+              this.participantDeclinedCallSubject.next(user);
             },
           });
 
@@ -655,7 +665,7 @@ export class ChatKitty {
 
         let end = () => {
           participantLeftCallUnsubscribe?.();
-          participantRejectedCallUnsubscribe?.();
+          participantDeclinedCallUnsubscribe?.();
           participantAcceptedCallUnsubscribe?.();
 
           receivedCallSignalUnsubscribe();
@@ -676,6 +686,14 @@ export class ChatKitty {
             connections.clear();
 
             this.callEndedSubject.next();
+          },
+        });
+
+        const activeCallUnsubscribe = this.kitty.stompX.listenForEvent<Call>({
+          topic: call._topics.self,
+          event: 'call.self.active',
+          onSuccess: (c) => {
+            this.currentCall = c;
           },
         });
 
@@ -781,6 +799,7 @@ export class ChatKitty {
 
               participantsUnsubscribe();
               signalsUnsubscribe();
+              activeCallUnsubscribe();
               endedCallUnsubscribe();
 
               callUnsubscribe();
@@ -790,16 +809,14 @@ export class ChatKitty {
               destination: call._actions.ready,
               body: {},
               onSent: () => {
-                this.activeCall = call;
+                this.currentCall = call;
 
                 this.endCallUnsubscribe = () => {
                   end();
 
-                  this.activeCall = null;
+                  this.currentCall = null;
                   this.endCallUnsubscribe = undefined;
                 };
-
-                this.callActiveSubject.next(call);
 
                 resolve();
               },
@@ -2721,7 +2738,7 @@ function isCreateChatKittyExternalFileProperties(
 interface Calls {
   localStream: MediaStream | null;
 
-  activeCall: Call | null;
+  currentCall: Call | null;
 
   isMuted: boolean;
 
@@ -2732,15 +2749,21 @@ interface Calls {
   }): void;
 
   startCall(request: StartCallRequest): Promise<StartCallResult>;
+
   acceptCall(request: AcceptCallRequest): Promise<AcceptCallResult>;
-  rejectCall(request: RejectCallRequest): Promise<RejectCallResult>;
+
+  declineCall(request: DeclineCallRequest): Promise<DeclineCallResult>;
+
   leaveCall(): void;
 
   switchCamera(): void;
+
   toggleMute(): void;
+
   toggleCamera(): void;
 
   getCalls(request: GetCallsRequest): Promise<GetCallsResult>;
+
   getCall(id: number): Promise<GetCallResult>;
 
   onCallInvite(
@@ -2755,7 +2778,7 @@ interface Calls {
     onNextOrObserver: ChatKittyObserver<User> | ((user: User) => void)
   ): ChatKittyUnsubscribe;
 
-  onParticipantRejectedCall(
+  onParticipantDeclinedCall(
     onNextOrObserver: ChatKittyObserver<User> | ((user: User) => void)
   ): ChatKittyUnsubscribe;
 
@@ -2778,19 +2801,17 @@ interface Calls {
 
 interface Connection {
   createOffer(): Promise<void>;
+
   answerOffer(description: RTCSessionDescriptionType): Promise<void>;
+
   addCandidate(candidate: RTCIceCandidateType): Promise<void>;
+
   close(): void;
 }
 
 class P2PConnection implements Connection {
   private static readonly rtcConfiguration: RTCPeerConnectionConfiguration = {
     iceServers: [
-      {
-        urls: ['turn:34.231.248.98:3478'],
-        username: 'chatkitty',
-        credential: '5WEDIcZHUxhlUlsdQcqj',
-      },
       {
         urls: ['stun:stun2.1.google.com:19302'],
       },

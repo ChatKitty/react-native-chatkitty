@@ -192,14 +192,14 @@ kitty.Calls.onParticipantAcceptedCall((participant: User) => {
 });
 ```
 
-### On participant rejected call
+### On participant declined call
 
 Called when another user rejects the call the current user is currently active in.
 
 ```typescript
 import { User } from 'react-native-chatkitty';
 
-kitty.Calls.onParticipantRejectedCall((participant: User) => {
+kitty.Calls.onParticipantDeclinedCall((participant: User) => {
   // Update in-call state and UI
 });
 ```
@@ -260,10 +260,10 @@ await kitty.Calls.acceptCall({ call });
 
 ## Rejecting a call
 
-Reject a call invite.
+Decline a call invite.
 
 ```javascript
-await kitty.Calls.rejectCall({ call });
+await kitty.Calls.declineCall({ call });
 ```
 
 ## Leaving an active call
@@ -320,14 +320,14 @@ if (succeeded(result)) {
 
 ## Retrieving a call
 
-### Retrieving active call
+### Retrieving current call
 
-Retrieve an active call if the currrent user has started or accepted the call using `ChatKitty.Calls.activeCall`
+Retrieve the current call if the current user has started or accepted the call using `ChatKitty.Calls.currentCall`
 
 ```typescript
 import { Call } from 'react-native-chatkitty';
 
-const call: Call | null = kitty.Calls.activeCall;
+const call: Call | null = kitty.Calls.currentCall;
 ```
 
 ### Retrieving a call by ID

@@ -36,7 +36,7 @@ export interface CallTopics {
 
 export interface CallActions {
   ready: string;
-  reject: string;
+  decline: string;
   signal: string;
 }
 
@@ -109,13 +109,13 @@ export class AcceptedCallResult extends ChatKittySucceededResult {
   }
 }
 
-export interface RejectCallRequest {
+export interface DeclineCallRequest {
   call: Call;
 }
 
-export type RejectCallResult = RejectedCallResult | ChatKittyFailedResult;
+export type DeclineCallResult = DeclinedCallResult | ChatKittyFailedResult;
 
-export class RejectedCallResult extends ChatKittySucceededResult {
+export class DeclinedCallResult extends ChatKittySucceededResult {
   constructor(public call: Call) {
     super();
   }
