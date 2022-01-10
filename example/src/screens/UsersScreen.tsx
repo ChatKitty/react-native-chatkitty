@@ -12,7 +12,7 @@ import { MainContext } from '../providers/MainProvider';
 const UsersScreen = () => {
   const { currentUser, users, call, logout } = useContext(MainContext);
 
-  const activeCall = null;
+  const currentCall = null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -26,9 +26,9 @@ const UsersScreen = () => {
               <Text style={styles.text}>{item.name}</Text>
               {currentUser?.name !== item.name ? (
                 <TouchableOpacity
-                  disabled={!!activeCall}
+                  disabled={!!currentCall}
                   onPress={() => call(item)}
-                  style={[styles.btn, { opacity: activeCall ? 0.3 : 1 }]}
+                  style={[styles.btn, { opacity: currentCall ? 0.3 : 1 }]}
                 >
                   <Text style={styles.btnText}>Call</Text>
                 </TouchableOpacity>

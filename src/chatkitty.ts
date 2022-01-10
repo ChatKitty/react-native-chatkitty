@@ -304,6 +304,10 @@ export class ChatKitty {
 
     public isCameraOn: boolean = false;
 
+    private configuration: {
+      media: { audio: boolean; video: boolean };
+    } | null = null;
+
     private readonly participantAcceptedCallSubject = new Subject<User>();
     private readonly participantDeclinedCallSubject = new Subject<User>();
     private readonly participantActiveSubject = new Subject<{
@@ -344,9 +348,14 @@ export class ChatKitty {
         },
       };
 
+      this.configuration = configuration;
+
       this.localStream = (await mediaDevices.getUserMedia(
         constraints
       )) as MediaStream;
+
+      this.isMuted = !configuration.media.audio;
+      this.isCameraOn = configuration.media.video;
     }
 
     public startCall(request: StartCallRequest): Promise<StartCallResult> {
@@ -813,6 +822,11 @@ export class ChatKitty {
 
                 this.endCallUnsubscribe = () => {
                   end();
+
+                  if (this.configuration) {
+                    this.isMuted = !this.configuration.media.audio;
+                    this.isCameraOn = this.configuration.media.video;
+                  }
 
                   this.currentCall = null;
                   this.endCallUnsubscribe = undefined;

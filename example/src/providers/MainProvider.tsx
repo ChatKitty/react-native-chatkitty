@@ -109,7 +109,7 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
             {
               text: 'Reject',
               onPress: async () => {
-                await kitty.Calls.rejectCall({ call });
+                await kitty.Calls.declineCall({ call });
               },
               style: 'cancel',
             },
@@ -141,7 +141,7 @@ const MainContextProvider: React.FC<Props> = ({ children }) => {
       setRemoteUser(participant);
     });
 
-    kitty.Calls.onParticipantRejectedCall((participant) => {
+    kitty.Calls.onParticipantDeclinedCall((participant) => {
       setRemoteUser(null);
 
       Alert.alert('Your call request rejected by ' + participant.name);
