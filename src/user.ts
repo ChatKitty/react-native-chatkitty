@@ -4,7 +4,7 @@ import { ChatKittyPaginator } from './pagination';
 import {
   ChatKittyFailedResult,
   ChatKittyResult,
-  ChatKittySucceededResult
+  ChatKittySucceededResult,
 } from './result';
 
 export interface BaseUser {
@@ -14,6 +14,7 @@ export interface BaseUser {
   displayPictureUrl: string;
   isGuest: boolean;
   presence: UserPresence;
+  callStatus: string;
   properties: unknown;
 }
 

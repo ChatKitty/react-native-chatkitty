@@ -694,7 +694,7 @@ export class ChatKitty {
 
             connections.clear();
 
-            this.callEndedSubject.next();
+            this.callEndedSubject.next(call);
           },
         });
 
