@@ -706,14 +706,14 @@ export class ChatKitty {
         const endedCallUnsubscribe = this.kitty.stompX.listenForEvent<Call>({
           topic: call._topics.self,
           event: 'call.self.ended',
-          onSuccess: () => {
+          onSuccess: (endedCall) => {
             end();
 
             connections.forEach((connection) => connection.close());
 
             connections.clear();
 
-            this.callEndedSubject.next(call);
+            this.callEndedSubject.next(endedCall);
           },
         });
 
