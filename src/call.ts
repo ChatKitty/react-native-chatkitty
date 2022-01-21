@@ -26,6 +26,7 @@ export type PresenterCall = CallProperties;
 
 export interface CallRelays {
   self: string;
+  participants: string;
 }
 
 export interface CallTopics {

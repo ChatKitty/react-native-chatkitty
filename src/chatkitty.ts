@@ -26,6 +26,7 @@ import {
   StartCallRequest,
   StartCallResult,
   StartedCallResult,
+  NoActiveCallError,
 } from './call';
 import {
   AnswerOfferCallSignal,
@@ -490,6 +491,24 @@ export class ChatKitty {
             resolve(new ChatKittyFailedResult(error));
           },
         });
+      });
+    }
+
+    public getCurrentCallParticipants(): Promise<GetUsersResult> {
+      const currentCall = this.currentCall;
+
+      if (!currentCall) {
+        throw new NoActiveCallError();
+      }
+
+      return new Promise((resolve) => {
+        ChatKittyPaginator.createInstance<User>({
+          stompX: this.kitty.stompX,
+          relay: currentCall._relays.participants,
+          contentName: 'users',
+        })
+          .then((paginator) => resolve(new GetUsersSucceededResult(paginator)))
+          .catch((error) => resolve(new ChatKittyFailedResult(error)));
       });
     }
 
@@ -2779,6 +2798,8 @@ interface Calls {
   getCalls(request: GetCallsRequest): Promise<GetCallsResult>;
 
   getCall(id: number): Promise<GetCallResult>;
+
+  getCurrentCallParticipants(): Promise<GetUsersResult>;
 
   onCallInvite(
     onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)

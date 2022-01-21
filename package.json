@@ -1,6 +1,6 @@
 {
   "name": "react-native-chatkitty",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "ChatKitty React Native SDK",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
