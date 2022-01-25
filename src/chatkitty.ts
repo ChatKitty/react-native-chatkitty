@@ -2848,7 +2848,9 @@ class P2PConnection implements Connection {
   private static readonly rtcConfiguration: RTCPeerConnectionConfiguration = {
     iceServers: [
       {
-        urls: ['stun:stun2.1.google.com:19302'],
+        username: 'participant',
+        credential: 'chatkittyturn0',
+        urls: ['turn:3.215.180.233:3478'],
       },
     ],
   };
@@ -2959,6 +2961,7 @@ class CallSignalDispatcher {
   constructor(private stompX: StompX, private call: Call) {}
 
   dispatch = (request: CreateCallSignalRequest): void => {
+    console.log(request);
     this.stompX.sendAction<never>({
       destination: this.call._actions.signal,
       body: request,
