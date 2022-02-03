@@ -236,7 +236,6 @@ import {
   NoActiveSessionError,
   SessionActiveError,
   StartedSessionResult,
-  StartSessionInProgressError,
   StartSessionRequest,
   StartSessionResult,
 } from './user-session';
@@ -287,8 +286,6 @@ export class ChatKitty {
   private messageMapper: MessageMapper = new MessageMapper('');
 
   private keyStrokesSubject = new Subject<SendKeystrokesRequest>();
-
-  private isStartingSession = false;
 
   currentUser?: CurrentUser;
 
@@ -896,15 +893,9 @@ export class ChatKitty {
   public startSession(
     request: StartSessionRequest
   ): Promise<StartSessionResult> {
-    if (this.isStartingSession) {
-      throw new StartSessionInProgressError();
-    }
-
     if (this.stompX.initialized) {
       throw new SessionActiveError();
     }
-
-    this.isStartingSession = true;
 
     return new Promise((resolve) => {
       this.stompX.connect<CurrentUser>({
@@ -927,8 +918,6 @@ export class ChatKitty {
 
           this.messageMapper = new MessageMapper(readFileGrant);
 
-          this.isStartingSession = false;
-
           resolve(new StartedSessionResult({ user: user }));
         },
         onConnected: (user) => {
@@ -939,8 +928,6 @@ export class ChatKitty {
         onConnectionLost: () => this.lostConnectionSubject.next(),
         onConnectionResumed: () => this.resumedConnectionSubject.next(),
         onError: (error) => {
-          this.isStartingSession = false;
-
           resolve(new ChatKittyFailedResult(error));
         },
       });

@@ -41,8 +41,6 @@ export default class StompX {
 
   private readonly axios: AxiosInstance;
 
-  private readonly rxStomp: RxStomp = new RxStomp();
-
   private readonly topics: Map<string, Subscription> = new Map();
 
   private readonly pendingActions: Map<
@@ -67,6 +65,8 @@ export default class StompX {
     string,
     Set<StompXEventHandler<unknown>>
   > = new Map();
+
+  private rxStomp: RxStomp = new RxStomp();
 
   public initialized = false;
 
@@ -424,6 +424,8 @@ export default class StompX {
     this.initialized = false;
 
     this.rxStomp.deactivate().then(request.onSuccess).catch(request.onError);
+
+    this.rxStomp = new RxStomp();
   }
 
   private guardConnected(action: () => void) {

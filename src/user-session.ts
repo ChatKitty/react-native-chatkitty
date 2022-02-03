@@ -3,7 +3,7 @@ import { ChatKittyError } from './error';
 import {
   ChatKittyFailedResult,
   ChatKittyResult,
-  ChatKittySucceededResult
+  ChatKittySucceededResult,
 } from './result';
 
 export declare class UserSession {
@@ -23,15 +23,6 @@ export declare class StartSessionRequest {
 export class StartedSessionResult extends ChatKittySucceededResult {
   constructor(public session: UserSession) {
     super();
-  }
-}
-
-export class StartSessionInProgressError extends ChatKittyError {
-  constructor() {
-    super(
-      'StartSessionInProgressError',
-      'A start session request is already in progress.'
-    );
   }
 }
 
