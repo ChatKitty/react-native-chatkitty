@@ -289,7 +289,7 @@ export class ChatKitty {
 
   currentUser?: CurrentUser;
 
-  public Calls: Calls = new (class ChatKittyCalls {
+  public Calls: Calls = new (class ChatKittyCalls implements Calls {
     private static callRelay(id: number): string {
       return '/application/v1/calls/' + id + '.relay';
     }
@@ -520,7 +520,7 @@ export class ChatKitty {
 
       const unsubscribe = this.kitty.stompX.listenForEvent<Call>({
         topic: user._topics.calls,
-        event: 'me.call.invited',
+        event: 'user.call.invited',
         onSuccess: (call) => {
           if (typeof onNextOrObserver === 'function') {
             onNextOrObserver(call);
@@ -544,7 +544,7 @@ export class ChatKitty {
 
       const unsubscribe = this.kitty.stompX.listenForEvent<Call>({
         topic: user._topics.calls,
-        event: 'me.call.active',
+        event: 'user.call.active',
         onSuccess: (call) => {
           if (typeof onNextOrObserver === 'function') {
             onNextOrObserver(call);
@@ -1129,8 +1129,8 @@ export class ChatKitty {
       this.stompX.sendAction<Channel>({
         destination: currentUser._actions.createChannel,
         events: [
-          'me.channel.created',
-          'me.channel.upserted',
+          'user.channel.created',
+          'user.channel.upserted',
           'member.channel.upserted',
         ],
         body: request,
@@ -2254,7 +2254,7 @@ export class ChatKitty {
 
     const unsubscribe = this.stompX.listenForEvent<Notification>({
       topic: currentUser._topics.notifications,
-      event: 'me.notification.created',
+      event: 'user.notification.created',
       onSuccess: (notification) => {
         if (typeof onNextOrObserver === 'function') {
           onNextOrObserver(notification);
@@ -2278,7 +2278,7 @@ export class ChatKitty {
 
     const unsubscribe = this.stompX.listenForEvent<Channel>({
       topic: currentUser._topics.channels,
-      event: 'me.channel.joined',
+      event: 'user.channel.joined',
       onSuccess: (channel) => {
         if (typeof onNextOrObserver === 'function') {
           onNextOrObserver(channel);
@@ -2302,7 +2302,7 @@ export class ChatKitty {
 
     const unsubscribe = this.stompX.listenForEvent<Channel>({
       topic: currentUser._topics.channels,
-      event: 'me.channel.hidden',
+      event: 'user.channel.hidden',
       onSuccess: (channel) => {
         if (typeof onNextOrObserver === 'function') {
           onNextOrObserver(channel);
@@ -2326,7 +2326,7 @@ export class ChatKitty {
 
     const unsubscribe = this.stompX.listenForEvent<Channel>({
       topic: currentUser._topics.channels,
-      event: 'me.channel.unhidden',
+      event: 'user.channel.unhidden',
       onSuccess: (channel) => {
         if (typeof onNextOrObserver === 'function') {
           onNextOrObserver(channel);
@@ -2350,7 +2350,7 @@ export class ChatKitty {
 
     const unsubscribe = this.stompX.listenForEvent<Channel>({
       topic: currentUser._topics.channels,
-      event: 'me.channel.left',
+      event: 'user.channel.left',
       onSuccess: (channel) => {
         if (typeof onNextOrObserver === 'function') {
           onNextOrObserver(channel);
@@ -2374,7 +2374,7 @@ export class ChatKitty {
 
     const unsubscribe = this.stompX.listenForEvent<Channel>({
       topic: currentUser._topics.channels,
-      event: 'me.channel.updated',
+      event: 'user.channel.updated',
       onSuccess: (channel) => {
         if (typeof onNextOrObserver === 'function') {
           onNextOrObserver(channel);
@@ -2948,7 +2948,6 @@ class CallSignalDispatcher {
   constructor(private stompX: StompX, private call: Call) {}
 
   dispatch = (request: CreateCallSignalRequest): void => {
-    console.log(request);
     this.stompX.sendAction<never>({
       destination: this.call._actions.signal,
       body: request,
