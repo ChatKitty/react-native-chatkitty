@@ -323,7 +323,7 @@ export class ChatKitty {
       stream: MediaStream;
     }>();
     private readonly participantLeftCallSubject = new Subject<User>();
-    private readonly userMediaSettingsUpdatedSubject =
+    private readonly participantMediaSettingsUpdatedSubject =
       new Subject<UserMediaSettings>();
 
     private readonly callEndedSubject = new Subject<Call>();
@@ -663,20 +663,19 @@ export class ChatKitty {
       return () => subscription.unsubscribe();
     }
 
-    public onUserMediaSettingsUpdated(
+    public onParticipantMediaSettingsUpdated(
       onNextOrObserver:
         | ChatKittyObserver<UserMediaSettings>
         | ((settings: UserMediaSettings) => void)
     ): ChatKittyUnsubscribe {
-      const subscription = this.userMediaSettingsUpdatedSubject.subscribe(
-        (settings) => {
+      const subscription =
+        this.participantMediaSettingsUpdatedSubject.subscribe((settings) => {
           if (typeof onNextOrObserver === 'function') {
             onNextOrObserver(settings);
           } else {
             onNextOrObserver.onNext(settings);
           }
-        }
-      );
+        });
 
       return () => subscription.unsubscribe();
     }
@@ -754,7 +753,7 @@ export class ChatKitty {
             topic: call._topics.userMediaSettings,
             event: 'call.user_media_settings.updated',
             onSuccess: (settings) => {
-              this.userMediaSettingsUpdatedSubject.next(settings);
+              this.participantMediaSettingsUpdatedSubject.next(settings);
             },
           });
 
@@ -2908,7 +2907,7 @@ interface Calls {
       | ((user: User, stream: MediaStream) => void)
   ): ChatKittyUnsubscribe;
 
-  onUserMediaSettingsUpdated(
+  onParticipantMediaSettingsUpdated(
     onNextOrObserver:
       | ChatKittyObserver<UserMediaSettings>
       | ((settings: UserMediaSettings) => void)
