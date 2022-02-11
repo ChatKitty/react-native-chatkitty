@@ -32,6 +32,7 @@ export interface CallRelays {
 export interface CallTopics {
   self: string;
   participants: string;
+  userMediaSettings: string;
   signals: string;
 }
 

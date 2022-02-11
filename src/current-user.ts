@@ -5,7 +5,7 @@ import {
 import {
   ChatKittyFailedResult,
   ChatKittyResult,
-  ChatKittySucceededResult
+  ChatKittySucceededResult,
 } from './result';
 import { BaseUser } from './user';
 
@@ -45,9 +45,11 @@ export declare class CurrentUserTopics {
 }
 
 export declare class CurrentUserActions {
-  update: string;
   createChannel: string;
   updateDisplayPicture: string;
+  updateMediaSettingsAudioEnabled: string;
+  updateMediaSettingsVideoEnabled: string;
+  update: string;
 }
 
 export declare class CurrentUserStreams {

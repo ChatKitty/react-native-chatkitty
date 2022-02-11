@@ -246,6 +246,12 @@ import {
 } from './file';
 import { environment } from './environment/environment';
 import { Notification } from './notification';
+import {
+  GetUserMediaSettingsRequest,
+  GetUserMediaSettingsResult,
+  GetUserMediaSettingsSucceededResult,
+  UserMediaSettings,
+} from './user-media-settings';
 
 export class ChatKitty {
   protected static readonly _instances = new Map<string, ChatKitty>();
@@ -294,6 +300,10 @@ export class ChatKitty {
       return '/application/v1/calls/' + id + '.relay';
     }
 
+    private static userMediaSettingsRelay(id: number): string {
+      return '/application/v1/users/' + id + '.media_settings.relay';
+    }
+
     public localStream: MediaStream | null = null;
 
     public currentCall: Call | null = null;
@@ -313,6 +323,8 @@ export class ChatKitty {
       stream: MediaStream;
     }>();
     private readonly participantLeftCallSubject = new Subject<User>();
+    private readonly userMediaSettingsUpdatedSubject =
+      new Subject<UserMediaSettings>();
 
     private readonly callEndedSubject = new Subject<Call>();
 
@@ -354,6 +366,20 @@ export class ChatKitty {
 
       this.isMuted = !configuration.media.audio;
       this.isCameraOn = configuration.media.video;
+
+      if (this.kitty.currentUser) {
+        this.kitty.stompX.sendAction({
+          destination:
+            this.kitty.currentUser._actions.updateMediaSettingsAudioEnabled,
+          body: { enabled: !this.isMuted },
+        });
+
+        this.kitty.stompX.sendAction({
+          destination:
+            this.kitty.currentUser._actions.updateMediaSettingsVideoEnabled,
+          body: { enabled: this.isCameraOn },
+        });
+      }
     }
 
     public startCall(request: StartCallRequest): Promise<StartCallResult> {
@@ -443,6 +469,14 @@ export class ChatKitty {
 
           this.isMuted = !track.enabled;
         });
+
+        if (this.kitty.currentUser) {
+          this.kitty.stompX.sendAction({
+            destination:
+              this.kitty.currentUser._actions.updateMediaSettingsAudioEnabled,
+            body: { enabled: !this.isMuted },
+          });
+        }
       }
     };
 
@@ -453,6 +487,14 @@ export class ChatKitty {
 
           this.isCameraOn = track.enabled;
         });
+
+        if (this.kitty.currentUser) {
+          this.kitty.stompX.sendAction({
+            destination:
+              this.kitty.currentUser._actions.updateMediaSettingsVideoEnabled,
+            body: { enabled: this.isCameraOn },
+          });
+        }
       }
     };
 
@@ -506,6 +548,22 @@ export class ChatKitty {
         })
           .then((paginator) => resolve(new GetUsersSucceededResult(paginator)))
           .catch((error) => resolve(new ChatKittyFailedResult(error)));
+      });
+    }
+
+    public getUserMediaSettings(
+      request: GetUserMediaSettingsRequest
+    ): Promise<GetUserMediaSettingsResult> {
+      return new Promise((resolve) => {
+        this.kitty.stompX.relayResource<UserMediaSettings>({
+          destination: ChatKittyCalls.userMediaSettingsRelay(request.user.id),
+          onSuccess: (settings) => {
+            resolve(new GetUserMediaSettingsSucceededResult(settings));
+          },
+          onError: (error) => {
+            resolve(new ChatKittyFailedResult(error));
+          },
+        });
       });
     }
 
@@ -605,6 +663,24 @@ export class ChatKitty {
       return () => subscription.unsubscribe();
     }
 
+    public onUserMediaSettingsUpdated(
+      onNextOrObserver:
+        | ChatKittyObserver<UserMediaSettings>
+        | ((settings: UserMediaSettings) => void)
+    ): ChatKittyUnsubscribe {
+      const subscription = this.userMediaSettingsUpdatedSubject.subscribe(
+        (settings) => {
+          if (typeof onNextOrObserver === 'function') {
+            onNextOrObserver(settings);
+          } else {
+            onNextOrObserver.onNext(settings);
+          }
+        }
+      );
+
+      return () => subscription.unsubscribe();
+    }
+
     public onParticipantLeftCall(
       onNextOrObserver: ChatKittyObserver<User> | ((user: User) => void)
     ): ChatKittyUnsubscribe {
@@ -643,6 +719,7 @@ export class ChatKitty {
         let participantAcceptedCallUnsubscribe: () => void;
         let participantDeclinedCallUnsubscribe: () => void;
         let participantLeftCallUnsubscribe: () => void;
+        let userMediaSettingsUpdatedUnsubscribe: () => void;
 
         participantAcceptedCallUnsubscribe =
           this.kitty.stompX.listenForEvent<User>({
@@ -672,6 +749,15 @@ export class ChatKitty {
           }
         );
 
+        userMediaSettingsUpdatedUnsubscribe =
+          this.kitty.stompX.listenForEvent<UserMediaSettings>({
+            topic: call._topics.userMediaSettings,
+            event: 'call.user_media_settings.updated',
+            onSuccess: (settings) => {
+              this.userMediaSettingsUpdatedSubject.next(settings);
+            },
+          });
+
         const signalSubject: Subject<CallSignal> = new Subject<CallSignal>();
 
         const signalDispatcher = new CallSignalDispatcher(
@@ -689,6 +775,7 @@ export class ChatKitty {
           });
 
         let end = () => {
+          userMediaSettingsUpdatedUnsubscribe?.();
           participantLeftCallUnsubscribe?.();
           participantDeclinedCallUnsubscribe?.();
           participantAcceptedCallUnsubscribe?.();
@@ -813,6 +900,11 @@ export class ChatKitty {
               topic: call._topics.participants,
             });
 
+            const userMediaSettingsUnsubscribe =
+              this.kitty.stompX.listenToTopic({
+                topic: call._topics.userMediaSettings,
+              });
+
             const signalsUnsubscribe = this.kitty.stompX.listenToTopic({
               topic: call._topics.signals,
             });
@@ -823,6 +915,7 @@ export class ChatKitty {
               superEnd();
 
               participantsUnsubscribe();
+              userMediaSettingsUnsubscribe();
               signalsUnsubscribe();
               activeCallUnsubscribe();
               endedCallUnsubscribe();
@@ -1055,6 +1148,7 @@ export class ChatKitty {
     return new Promise((resolve) => {
       const file = request.file;
 
+      // eslint-disable-next-line no-undef
       if (file instanceof Blob) {
         this.stompX.sendToStream<CurrentUser>({
           stream: currentUser._streams.displayPicture,
@@ -2788,6 +2882,10 @@ interface Calls {
 
   getCurrentCallParticipants(): Promise<GetUsersResult>;
 
+  getUserMediaSettings(
+    request: GetUserMediaSettingsRequest
+  ): Promise<GetUserMediaSettingsResult>;
+
   onCallInvite(
     onNextOrObserver: ChatKittyObserver<Call> | ((call: Call) => void)
   ): ChatKittyUnsubscribe;
@@ -2808,6 +2906,12 @@ interface Calls {
     onNextOrObserver:
       | ChatKittyObserver<{ user: User; stream: MediaStream }>
       | ((user: User, stream: MediaStream) => void)
+  ): ChatKittyUnsubscribe;
+
+  onUserMediaSettingsUpdated(
+    onNextOrObserver:
+      | ChatKittyObserver<UserMediaSettings>
+      | ((settings: UserMediaSettings) => void)
   ): ChatKittyUnsubscribe;
 
   onParticipantLeftCall(
