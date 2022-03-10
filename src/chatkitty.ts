@@ -2880,7 +2880,7 @@ interface Calls {
 
   initialize(configuration: {
     media: { audio: boolean; video: boolean };
-  }): void;
+  }): Promise<void>;
 
   startCall(request: StartCallRequest): Promise<StartCallResult>;
 
