@@ -202,11 +202,11 @@ export default class StompX {
     });
 
     this.rxStomp.connectionState$.subscribe((state) => {
-      if (state == RxStompState.CLOSED) {
+      if (state === RxStompState.CLOSED) {
         request.onConnectionLost();
       }
 
-      if (state == RxStompState.OPEN) {
+      if (state === RxStompState.OPEN) {
         request.onConnectionResumed();
       }
     });
@@ -224,10 +224,12 @@ export default class StompX {
         };
       }
 
-      if (error.error == 'AccessDeniedError') {
+      if (error.error === 'AccessDeniedError') {
         const onResult = () => request.onError(error);
 
         this.disconnect({ onSuccess: onResult, onError: onResult });
+      } else {
+        request.onError(error);
       }
     });
 

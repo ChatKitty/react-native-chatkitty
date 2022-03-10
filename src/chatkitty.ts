@@ -149,6 +149,9 @@ import {
   CreateChannelRequest,
   CreateChannelResult,
   CreatedChannelResult,
+  DeleteChannelRequest,
+  DeleteChannelResult,
+  DeletedChannelResult,
   DirectChannel,
   GetChannelMembersRequest,
   GetChannelResult,
@@ -254,7 +257,7 @@ import {
 } from './user-media-settings';
 
 export class ChatKitty {
-  protected static readonly _instances = new Map<string, ChatKitty>();
+  private static readonly _instances = new Map<string, ChatKitty>();
 
   public static getInstance(apiKey: string): ChatKitty {
     let instance = ChatKitty._instances.get(apiKey);
@@ -278,10 +281,11 @@ export class ChatKitty {
     return '/application/v1/users/' + id + '.relay';
   }
 
-  protected readonly stompX: StompX;
+  private readonly stompX: StompX;
 
-  protected readonly currentUserSubject =
-    new BehaviorSubject<CurrentUser | null>(null);
+  private readonly currentUserSubject = new BehaviorSubject<CurrentUser | null>(
+    null
+  );
 
   private readonly lostConnectionSubject = new Subject<void>();
   private readonly resumedConnectionSubject = new Subject<void>();
@@ -1201,6 +1205,23 @@ export class ChatKitty {
         body: request.channel,
         onSuccess: (channel) => {
           resolve(new UpdatedChannelResult(channel));
+        },
+        onError: (error) => {
+          resolve(new ChatKittyFailedResult(error));
+        },
+      });
+    });
+  }
+
+  public deleteChannel(
+    request: DeleteChannelRequest
+  ): Promise<DeleteChannelResult> {
+    return new Promise((resolve) => {
+      this.stompX.sendAction<void>({
+        destination: request.channel._actions.delete,
+        body: {},
+        onSuccess: () => {
+          resolve(new DeletedChannelResult());
         },
         onError: (error) => {
           resolve(new ChatKittyFailedResult(error));
