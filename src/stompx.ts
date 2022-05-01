@@ -4,6 +4,7 @@ import Axios, { AxiosInstance } from 'axios';
 import { Subscription } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { v4 } from 'uuid';
+import { encode } from 'base-64';
 
 import { version } from './environment/version';
 
@@ -110,17 +111,19 @@ export default class StompX {
     };
 
     if (request.authParams) {
-      headers['StompX-Auth-Params'] = JSON.stringify(request.authParams);
+      headers['StompX-Auth-Params'] = encode(
+        JSON.stringify(request.authParams)
+      );
     }
 
     if (typeof WebSocket === 'function') {
       this.rxStompConfig.brokerURL = `${
         this.wsScheme
-      }://${host}/rtm/websocket?api_key=${encodeURIComponent(request.apiKey)}`;
+      }://${host}/rtm/websocket?api-key=${encodeURIComponent(request.apiKey)}`;
     } else {
       this.rxStompConfig.webSocketFactory = () => {
         return new TransportFallback.default(
-          `${this.httpScheme}://${host}/rtm?api_key=${encodeURIComponent(
+          `${this.httpScheme}://${host}/rtm?api-key=${encodeURIComponent(
             request.apiKey
           )}`
         );
