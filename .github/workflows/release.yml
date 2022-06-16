@@ -33,6 +33,7 @@ jobs:
       - name: Build and Generate docs 📚
         run: |
           yarn install --frozen-lockfile
+          yarn run example
           yarn run doc:md
 
       - name: Deploy 🚀
