@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/ChatKitty/react-native-chatkitty/compare/v1.7.0...v1.7.1) (2022-06-16)
+
+
+### Bug Fixes
+
+* fix @semantic-release/git assets ([69d42e3](https://github.com/ChatKitty/react-native-chatkitty/commit/69d42e36a77a9375bec3bd6fb0fc48b0421f8b20))
+
 # [1.7.0](https://github.com/ChatKitty/react-native-chatkitty/compare/v1.6.3...v1.7.0) (2022-06-16)
 
 
