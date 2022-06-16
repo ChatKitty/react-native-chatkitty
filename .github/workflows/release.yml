@@ -20,8 +20,8 @@ jobs:
         with:
           node-version: '16.x'
           registry-url: 'https://registry.npmjs.org'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache: 'yarn'
+          cache-dependency-path: yarn.lock
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -32,8 +32,8 @@ jobs:
 
       - name: Build and Generate docs 📚
         run: |
-          npm ci
-          npm run doc:md
+          yarn install --frozen-lockfile
+          yarn run doc:md
 
       - name: Deploy 🚀
         run: |
